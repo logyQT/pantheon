@@ -1,0 +1,282 @@
+[
+  {
+    "name": "Aspect of the End",
+    "category": "Skyblock",
+    "hintOne": "A classic rare sword used by almost every player",
+    "hintTwo": "Its ability costs 50 mana and moves you forward",
+    "definition": "A versatile sword that teleports the player 8 blocks ahead and grants a temporary speed boost"
+  },
+  {
+    "name": "Aote",
+    "category": "Skyblock",
+    "hintOne": "The common abbreviation for a famous teleporting sword",
+    "hintTwo": "Players often use it with the Ultimate Wise enchantment",
+    "definition": "Short for Aspect of the End, the most used utility weapon for mobility in Skyblock"
+  },
+  {
+    "name": "Arachne",
+    "category": "Skyblock",
+    "hintOne": "A boss found in a deep, web-filled sanctuary",
+    "hintTwo": "You need a special calling item to summon her",
+    "definition": "A powerful spider boss located in the Spider's Den that drops Soulflow and equipment"
+  },
+  {
+    "name": "Artifact of Power",
+    "category": "Skyblock",
+    "hintOne": "A legendary accessory that can hold many gemstones",
+    "hintTwo": "It is an upgraded version of a rare talisman from the Crystal Hollows",
+    "definition": "A powerful accessory that provides massive stat bonuses depending on the gemstones applied to its slots"
+  },
+  {
+    "name": "Atomsplit Katana",
+    "category": "Skyblock",
+    "hintOne": "The final upgrade of a specific slayer weapon line",
+    "hintTwo": "It is designed specifically to kill Tier 4 Voidgloom Seraphs",
+    "definition": "The most powerful Enderman Slayer weapon, dealing massive damage to Enderman mobs"
+  },
+  {
+    "name": "Aurora Armor",
+    "category": "Skyblock",
+    "hintOne": "A mage-class armor set obtained from the Kuudra fight",
+    "hintTwo": "It has different 'attributes' that can be upgraded",
+    "definition": "A high-end magic armor set from the Crimson Isle that scales its damage based on mana"
+  },
+  {
+    "name": "Auto Recombobulator",
+    "category": "Skyblock",
+    "hintOne": "A legendary dungeon accessory",
+    "hintTwo": "It has a 1% chance to trigger when killing a mob",
+    "definition": "A talisman that automatically upgrades the rarity of a dropped item if the chance is met"
+  },
+  {
+    "name": "Axe of the Shredded",
+    "category": "Skyblock",
+    "hintOne": "A powerful weapon requiring Zombie Slayer Level 8",
+    "hintTwo": "You can throw it to deal massive damage from a distance",
+    "definition": "The ultimate zombie slayer weapon that consumes mana to throw axes at enemies"
+  },
+  {
+    "name": "Backpack",
+    "category": "Skyblock",
+    "hintOne": "A storage item that was once disabled for a long time",
+    "hintTwo": "You can access its contents directly from your inventory",
+    "definition": "A portable container used to expand the player's inventory space, available in different sizes"
+  },
+  {
+    "name": "Bazaar",
+    "category": "Skyblock",
+    "hintOne": "The main hub for trading bulk commodities",
+    "hintTwo": "Prices here change constantly based on supply and demand",
+    "definition": "An NPC-driven marketplace where players buy and sell resources like crops, ores, and mob drops"
+  },
+  {
+    "name": "Beastmaster Crest",
+    "category": "Skyblock",
+    "hintOne": "An accessory related to Diana's mythological ritual",
+    "hintTwo": "It gains more stats as you kill more mythological creatures",
+    "definition": "A talisman that tracks your kills during the Diana event and rewards you with better stats"
+  },
+  {
+    "name": "Bingo Card",
+    "category": "Skyblock",
+    "hintOne": "An item given to players during a special monthly event",
+    "hintTwo": "You must complete various tasks to fill its slots",
+    "definition": "An item used during the Bingo event to track progress and earn Bingo points for rewards"
+  },
+  {
+    "name": "Bits",
+    "category": "Skyblock",
+    "hintOne": "A currency earned while having a Booster Cookie active",
+    "hintTwo": "You can spend them at Elizabeth's shop in the Hub",
+    "definition": "A special currency used to buy utility items like God Potions, Katana upgrades, and more"
+  },
+  {
+    "name": "Black Cat",
+    "category": "Skyblock",
+    "hintOne": "A speed-oriented pet purchased during the Spooky Festival",
+    "hintTwo": "It increases your maximum speed cap",
+    "definition": "A legendary pet that boosts Magic Find and allows players to exceed the 400 speed limit"
+  },
+  {
+    "name": "Blaze Pet",
+    "category": "Skyblock",
+    "hintOne": "A combat pet that is essential for the Nether",
+    "hintTwo": "It doubles the stats of Frozen Blaze armor",
+    "definition": "A high-tier pet that provides fire immunity and massive stat buffs when wearing the Frozen Blaze set"
+  },
+  {
+    "name": "Blood God Crest",
+    "category": "Skyblock",
+    "hintOne": "A limited-time accessory from a specific Technoblade event",
+    "hintTwo": "It grants bonus stats for every millions of players' kills",
+    "definition": "A rare talisman released in memory of Technoblade that provides health and strength"
+  },
+  {
+    "name": "Blue Cheese Goblin Omelette",
+    "category": "Skyblock",
+    "hintOne": "The most expensive upgrade for a Drill",
+    "hintTwo": "It grants a massive boost to Mining Speed for a short time",
+    "definition": "An ultra-rare drill part that allows players to use the 'Pickobulus' ability more effectively"
+  },
+  {
+    "name": "Booster Cookie",
+    "category": "Skyblock",
+    "hintOne": "The most important consumable for active players",
+    "hintTwo": "It prevents loss of coins on death and allows /bz access",
+    "definition": "An item that grants 'Cookie Buff' for 4 days, providing bits, skill XP boosts, and many quality-of-life features"
+  },
+  {
+    "name": "Builders Ruler",
+    "category": "Skyblock",
+    "hintOne": "A tool used to build massive farms on the Garden or Island",
+    "hintTwo": "It can place a whole row of blocks at once",
+    "definition": "A utility item purchased from Anita that allows players to build structures extremely fast"
+  },
+  {
+    "name": "Burning Kuudra",
+    "category": "Skyblock",
+    "hintOne": "The third tier of the giant lava boss fight",
+    "hintTwo": "It requires a specific party setup to defeat efficiently",
+    "definition": "A difficult version of the Kuudra boss fight in the Crimson Isle that rewards high-tier armor and loot"
+  },
+  {
+    "name": "Campfire Cultist",
+    "category": "Skyblock",
+    "hintOne": "An NPC found in a dark forest area",
+    "hintTwo": "He gives you a talisman that upgrades as you survive longer in fire",
+    "definition": "An NPC in the Birch Park who challenges players to stand in a campfire to upgrade their Wood Affinity Talisman"
+  },
+  {
+    "name": "Catacombs",
+    "category": "Skyblock",
+    "hintOne": "The primary location for the Dungeon sub-game",
+    "hintTwo": "It features seven floors, each harder than the last",
+    "definition": "The main dungeon area where players fight undead mobs and bosses like Bonzo, Scarf, and Necron"
+  },
+  {
+    "name": "Celestial Cufflinks",
+    "category": "Skyblock",
+    "hintOne": "An accessory related to the Sun and Moon",
+    "hintTwo": "It is crafted using items from the Chocolate Factory",
+    "definition": "A rare accessory that provides different stat boosts depending on the time of day in Skyblock"
+  },
+  {
+    "name": "Chimera",
+    "category": "Skyblock",
+    "hintOne": "An incredibly expensive Ultimate Enchantment",
+    "hintTwo": "It copies a percentage of your active pet's stats",
+    "definition": "A top-tier enchantment dropped by Inquisitors during the Diana event that scales with your pet"
+  },
+  {
+    "name": "Chocolate Factory",
+    "category": "Skyblock",
+    "hintOne": "A clicker-style minigame added to the Hub",
+    "hintTwo": "You spend currency on rabbits to increase production",
+    "definition": "A feature located in the Community Center where players produce chocolate to buy unique accessories"
+  },
+  {
+    "name": "Clay Minion",
+    "category": "Skyblock",
+    "hintOne": "A minion formerly famous for making pure coins",
+    "hintTwo": "It was the meta for fishing XP and money for a long time",
+    "definition": "A resource-generating minion that produces clay, often used by early-game players to level up Fishing"
+  },
+  {
+    "name": "Cocoa Chopper",
+    "category": "Skyblock",
+    "hintOne": "An axe specifically designed for a brown crop",
+    "hintTwo": "It has a chance to drop Replenish-style rewards",
+    "definition": "A specialized tool for farming cocoa beans that grants bonus farming fortune"
+  },
+  {
+    "name": "Collector Museum",
+    "category": "Skyblock",
+    "hintOne": "A place where you donate items to increase your rank",
+    "hintTwo": "Donating items binds them to your soul",
+    "definition": "A location in the Hub where players can display their gear to earn rewards and Skyblock XP"
+  },
+  {
+    "name": "Composter",
+    "category": "Skyblock",
+    "hintOne": "A machine found in the Garden",
+    "hintTwo": "It turns unwanted crops into Organic Matter and Fuel",
+    "definition": "A station used to produce Compost, which is necessary for upgrading Garden plots"
+  },
+  {
+    "name": "Corrupt Soil",
+    "category": "Skyblock",
+    "hintOne": "A popular minion upgrade for combat minions",
+    "hintTwo": "It makes mobs drop Corrupted Fragments and Sulfur",
+    "definition": "A minion fuel upgrade that maximizes profit by forcing mobs to drop extra corrupted items"
+  },
+  {
+    "name": "Crimson Isle",
+    "category": "Skyblock",
+    "hintOne": "The high-level combat island that replaced the Blazing Fortress",
+    "hintTwo": "It features two factions: Mage and Barbarian",
+    "definition": "The end-game Nether dimension where players fight Kuudra and collect specialized armor sets"
+  },
+  {
+    "name": "Crystal Hollows",
+    "category": "Skyblock",
+    "hintOne": "A massive underground mining area",
+    "hintTwo": "The map resets every few hours and has different biomes",
+    "definition": "A randomized mining zone where players search for crystals and gemstones like Ruby and Jasper"
+  },
+  {
+    "name": "Daedalus Axe",
+    "category": "Skyblock",
+    "hintOne": "A legendary weapon that copies your pet's stats",
+    "hintTwo": "It is a key item for the Mythological Ritual event",
+    "definition": "A high-end axe that gains strength based on your active pet and increases Magic Find"
+  },
+  {
+    "name": "Dark Auction",
+    "category": "Skyblock",
+    "hintOne": "A secret event that happens every 3 Skyblock days",
+    "hintTwo": "You need a lot of coins to even enter the room",
+    "definition": "A hidden auction house hosted by Sirius where rare items like Midas Spoon and Flower of Truth are sold"
+  },
+  {
+    "name": "Deathripper Dagger",
+    "category": "Skyblock",
+    "hintOne": "A slayer weapon used for Spider Slayer",
+    "hintTwo": "It is an upgrade from the Scorpion Foil",
+    "definition": "A powerful dagger designed specifically to deal massive damage to spiders and bosses like Arachne"
+  },
+  {
+    "name": "Derpy",
+    "category": "Skyblock",
+    "hintOne": "A mayor who closes the Auction House",
+    "hintTwo": "He doubles mob health but boosts skill XP by 50%",
+    "definition": "A special mayor known for chaotic effects, making the game harder but rewarding players with more XP"
+  },
+  {
+    "name": "Diana",
+    "category": "Skyblock",
+    "hintOne": "A mayor who starts the Mythological Ritual",
+    "hintTwo": "She enables the use of the Ancestral Spade to find burrows",
+    "definition": "A mayor that introduces Griffin pets and mythical creatures to the Hub island"
+  },
+  {
+    "name": "Diamond Atom",
+    "category": "Skyblock",
+    "hintOne": "A rare drop from a specific floor in the Catacombs",
+    "hintTwo": "It is used to apply the 'Perfect' reforge to armor",
+    "definition": "A reforge stone dropped in Master Mode dungeons that provides huge defense bonuses"
+  },
+  {
+    "name": "Divan's Drill",
+    "category": "Skyblock",
+    "hintOne": "The most expensive and powerful mining tool in the game",
+    "hintTwo": "It is crafted using multiple Alloys and other drills",
+    "definition": "The ultimate mining tool, often costing billions of coins, used for the fastest gemstone mining"
+  },
+  {
+    "name": "Dreadlord Sword",
+    "category": "Skyblock",
+    "hintOne": "A very common mage weapon from the early floors of dungeons",
+    "hintTwo": "It shoots skulls that deal area-of-effect damage",
+    "definition": "A budget mage weapon dropped by mobs in the Catacombs, popular for clearing weak groups of enemies"
+  }
+]
