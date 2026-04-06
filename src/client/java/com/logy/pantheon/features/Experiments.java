@@ -7,12 +7,10 @@ import java.util.Map;
 
 import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.utils.NumberUtils;
-import com.logy.pantheon.utils.RangedInt;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
-import net.minecraft.util.Mth;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ClickType;
