@@ -7,12 +7,17 @@ import dev.isxander.yacl3.api.controller.BooleanControllerBuilder;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import dev.isxander.yacl3.api.controller.StringControllerBuilder;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 public class ModMenuIntegration implements ModMenuApi {
 
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
+        return ModMenuIntegration::createConfigScreen;
+    }
+    public static Screen createConfigScreen(Screen parent) {
+        PantheonConfig config = PantheonConfig.get();
         return ModMenuIntegration::createConfigScreen;
     }
     public static Screen createConfigScreen(Screen parent) {
@@ -133,6 +138,9 @@ public class ModMenuIntegration implements ModMenuApi {
                                 .build())
                         .build())
 
+                .save(config::save)
+                .build()
+                .generateScreen(parent);
                 .save(config::save)
                 .build()
                 .generateScreen(parent);

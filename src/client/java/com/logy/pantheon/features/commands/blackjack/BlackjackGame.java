@@ -3,7 +3,9 @@ package com.logy.pantheon.features.commands.blackjack;
 import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.BaseGame;
+import com.logy.pantheon.features.commands.main.BaseGame;
 import com.logy.pantheon.utils.ChatUtils;
+
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -50,6 +52,15 @@ public class BlackjackGame extends BaseGame {
     protected void onStart() {
         phase = BlackjackPhase.BETTING;
         resetPhaseTimer();
+    @Override
+    protected String getName() {
+        return "Blackjack";
+    }
+
+    @Override
+    protected void onStart() {
+        phase = BlackjackPhase.BETTING;
+        resetPhaseTimer();
         activeHands.clear();
         dealerHand.clear();
         insuranceBets.clear();
@@ -65,9 +76,13 @@ public class BlackjackGame extends BaseGame {
     @Override
     protected void onChat(String sender, String message) {
         String msg = message.toLowerCase().trim();
+    protected void onChat(String sender, String message) {
+        String msg = message.toLowerCase().trim();
 
         if (phase == BlackjackPhase.BETTING && msg.startsWith(".bet")) {
+        if (phase == BlackjackPhase.BETTING && msg.startsWith(".bet")) {
             handleBet(sender, msg);
+        } else if (phase == BlackjackPhase.INSURANCE && msg.equals(".ins")) {
         } else if (phase == BlackjackPhase.INSURANCE && msg.equals(".ins")) {
             handleInsurance(sender);
         } else if (phase == BlackjackPhase.PLAYER_TURNS) {
@@ -81,6 +96,7 @@ public class BlackjackGame extends BaseGame {
 
     private void handleBet(String sender, String msg) {
         if (activeHands.stream().anyMatch(h -> h.playerName.equalsIgnoreCase(sender))) {
+            send(sender + ", you already placed a bet!");
             send(sender + ", you already placed a bet!");
             return;
         }
@@ -97,10 +113,13 @@ public class BlackjackGame extends BaseGame {
             if (Economy.takeMoney(sender, amount)) {
                 activeHands.add(new HandSession(sender, amount));
                 send(sender + " joined with " + amount);
+                send(sender + " joined with " + amount);
             } else {
+                send(sender + ", insufficient funds!");
                 send(sender + ", insufficient funds!");
             }
         } catch (NumberFormatException e) {
+            send("Usage: .bet <amount>");
             send("Usage: .bet <amount>");
         }
     }
@@ -182,10 +201,12 @@ public class BlackjackGame extends BaseGame {
             if (h.finished) {
                 currentHandIndex++;
                 resetPhaseTimer();
+                resetPhaseTimer();
                 continue;
             }
 
             if (calculateScore(h.cards) == 21) {
+                send(h.playerName + " has 21!");
                 send(h.playerName + " has 21!");
                 h.finished = true;
                 currentHandIndex++;
@@ -193,9 +214,11 @@ public class BlackjackGame extends BaseGame {
             }
 
             send("Turn: " + h.playerName + " | Hand: " + h.cards + " (" + calculateScore(h.cards) + ")");
+            send("Turn: " + h.playerName + " | Hand: " + h.cards + " (" + calculateScore(h.cards) + ")");
             return;
         }
 
+        phase = BlackjackPhase.DEALER_TURN;
         phase = BlackjackPhase.DEALER_TURN;
         handleDealerFinal();
     }
@@ -204,11 +227,13 @@ public class BlackjackGame extends BaseGame {
         hand.cards.add(deck.draw());
         int score = calculateScore(hand.cards);
         send(hand.playerName + " drew " + hand.cards.get(hand.cards.size() - 1) + " (Total: " + score + ")");
+        send(hand.playerName + " drew " + hand.cards.get(hand.cards.size() - 1) + " (Total: " + score + ")");
 
         if (score >= 21) {
             hand.finished = true;
             processTurns();
         } else {
+            resetPhaseTimer();
             resetPhaseTimer();
         }
     }
@@ -219,6 +244,7 @@ public class BlackjackGame extends BaseGame {
 
         hand.bet *= 2;
         hand.cards.add(deck.draw());
+        send(hand.playerName + " DOUBLED: " + calculateScore(hand.cards));
         send(hand.playerName + " DOUBLED: " + calculateScore(hand.cards));
         hand.finished = true;
         processTurns();
@@ -239,6 +265,7 @@ public class BlackjackGame extends BaseGame {
 
             activeHands.add(currentHandIndex + 1, splitHand);
             send("Split successful!");
+            send("Split successful!");
             processTurns();
         }
     }
@@ -246,8 +273,16 @@ public class BlackjackGame extends BaseGame {
     private void handleDealerFinal() {
         int dScore = calculateScore(dealerHand);
         send("Dealer reveals: " + dealerHand + " (" + dScore + ")");
+        send("Dealer reveals: " + dealerHand + " (" + dScore + ")");
 
         if (dealerHand.size() == 2 && dScore == 21) {
+            send("Dealer has BLACKJACK!");
+        } else {
+            while (calculateScore(dealerHand) < 17) {
+                Card drawn = deck.draw();
+                dealerHand.add(drawn);
+                send("Dealer draws: " + drawn + " (" + calculateScore(dealerHand) + ")");
+            }
             send("Dealer has BLACKJACK!");
         } else {
             while (calculateScore(dealerHand) < 17) {
@@ -300,8 +335,10 @@ public class BlackjackGame extends BaseGame {
                 int payout = amount * 3;
                 Economy.addMoney(name, payout);
                 send(name + ": Insurance payout +" + payout);
+                send(name + ": Insurance payout +" + payout);
             });
         }
+        stop(StopReason.WIN);
         stop(StopReason.WIN);
     }
 
@@ -318,7 +355,10 @@ public class BlackjackGame extends BaseGame {
     @Override
     protected void onUpdate(long deltaMs) {
         long elapsedSinceState = now() - phaseStartTime;
+    protected void onUpdate(long deltaMs) {
+        long elapsedSinceState = now() - phaseStartTime;
 
+        switch (phase) {
         switch (phase) {
             case BETTING -> {
                 if (elapsedSinceState > getBettingTime()) beginMatch();
@@ -329,6 +369,7 @@ public class BlackjackGame extends BaseGame {
             case PLAYER_TURNS -> {
                 if (elapsedSinceState > getTurnTime()) {
                     HandSession h = activeHands.get(currentHandIndex);
+                    send(h.playerName + " timed out! Standing.");
                     send(h.playerName + " timed out! Standing.");
                     h.finished = true;
                     processTurns();
