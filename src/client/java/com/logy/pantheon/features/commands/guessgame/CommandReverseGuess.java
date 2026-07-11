@@ -1,19 +1,19 @@
-package com.logy.pantheon.features.commands.blackjack;
+package com.logy.pantheon.features.commands.guessgame;
 
 import com.logy.pantheon.features.commands.main.AutoRegister;
 import com.logy.pantheon.features.commands.main.BaseCommand;
 import com.logy.pantheon.features.commands.main.CommandManager;
 
 @AutoRegister
-public class CommandBlackjack extends BaseCommand {
-    private final BlackjackGame game = new BlackjackGame();
+public class CommandReverseGuess extends BaseCommand {
+    private final ReverseGuessingGame game = new ReverseGuessingGame();
 
-    public CommandBlackjack() {
+    public CommandReverseGuess() {
         CommandManager.registerGame(game);
     }
 
     @Override
-    public String getName() { return "blackjack"; }
+    public String getName() { return "rguess"; }
 
     @Override
     protected void onRun(String sender, String target, String[] args) {

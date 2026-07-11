@@ -7,15 +7,13 @@ import java.util.Map;
 
 import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.utils.NumberUtils;
-import com.logy.pantheon.utils.RangedInt;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.ContainerScreen;
-import net.minecraft.util.Mth;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.ChestMenu;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -59,7 +57,7 @@ public class Experiments {
         if (initialized) return;
         initialized = true;
         ClientTickEvents.END_CLIENT_TICK.register(Experiments::handleClientTick);
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> resetAllState());
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, world) -> resetAllState());
     }
 
     private static void handleClientTick(Minecraft client) {
@@ -246,7 +244,7 @@ public class Experiments {
         if (slot < 0 || slot >= menu.slots.size()) {
             return false;
         }
-        client.gameMode.handleInventoryMouseClick(menu.containerId, slot, 0, ClickType.PICKUP, client.player);
+        client.gameMode.handleContainerInput(menu.containerId, slot, 0, ContainerInput.PICKUP, client.player);
         return true;
     }
 

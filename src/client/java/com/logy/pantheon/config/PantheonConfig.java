@@ -18,8 +18,22 @@ public class PantheonConfig {
     public Integer AUTO_EXPERIMENTS_CLICK_DELAY = 200;
     public Integer AUTO_EXPERIMENTS_SERUM_COUNT = 0;
 
-    public boolean tpsDisplay = true;
-    public int rouletteMaxBet = 5000;
+    public Integer MESSAGE_QUE_COOLDOWN_MS = 1000;
+
+    public Integer BLACKJACK_MIN_BET = 10;
+    public Integer BLACKJACK_MAX_BET = 1000000;
+    public Integer BLACKJACK_BETTING_TIME_S = 11000;
+    public Integer BLACKJACK_TURN_TIME_S = 30000;
+    public Integer BLACKJACK_INSURANCE_TIME_S = 10000;
+
+    public String FASTWARP_AREA_ONE = "dragon's nest";
+    public String FASTWARP_AREA_TWO = "spider mound";
+    public String FASTWARP_CMD_ONE = "warp top";
+    public String FASTWARP_CMD_TWO = "warp drag";
+    public Integer FASTWARP_PTC_PROTECTION_MS = 5000; // PTC - Player transfer cooldown
+
+    public Boolean AUTO_PEARLS = true;
+
     public String prefix = "!";
 
     private static PantheonConfig INSTANCE = new PantheonConfig();

@@ -1,0 +1,41 @@
+package com.logy.pantheon.features.commands;
+
+import com.logy.pantheon.features.commands.main.AutoRegister;
+import com.logy.pantheon.features.commands.main.BaseCommand;
+import com.logy.pantheon.utils.InventoryUtils;
+import static com.logy.pantheon.PantheonMod.LOGGER;
+
+@AutoRegister
+public class CommandTest extends BaseCommand {
+
+    @Override
+    public String getName() {
+        return "test";
+    }
+
+    @Override
+    protected void onRun(String sender, String target, String[] args) {
+        if (!sender.equalsIgnoreCase("catgirlbialas")) {
+            return;
+        }
+
+        if (args.length < 1) {
+            send("Użycie: !" + getName() + " <item_id>");
+            return;
+        }
+
+        String itemId = args[0];
+
+        try {
+            int count = InventoryUtils.getItemCountById(itemId);
+
+            send("Znaleziono " + count + " sztuk przedmiotu: " + itemId);
+
+            LOGGER.info("[Pantheon Test] Gracz {} sprawdził przedmiot: {}. Ilość: {}", sender, itemId, count);
+
+        } catch (Exception e) {
+            LOGGER.info("[Pantheon Test] Wystąpił błąd podczas szukania itemu {}: {}", itemId, e.getMessage());
+            send("Wystąpił błąd podczas sprawdzania przedmiotu. Szczegóły w konsoli.");
+        }
+    }
+}

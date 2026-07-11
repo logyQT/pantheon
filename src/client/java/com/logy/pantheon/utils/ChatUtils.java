@@ -1,6 +1,7 @@
 package com.logy.pantheon.utils;
 
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.Meow;
 import com.logy.pantheon.features.commands.main.CommandManager;
 import com.logy.pantheon.features.commands.main.FunCommands;
@@ -15,6 +16,8 @@ import java.util.Queue;
 import static com.logy.pantheon.PantheonMod.LOGGER;
 
 public class ChatUtils {
+
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
 
     private static final Minecraft client = Minecraft.getInstance();
 
@@ -33,22 +36,27 @@ public class ChatUtils {
         long now = System.currentTimeMillis();
 
         if (messageQueue.isEmpty()) return;
-        if (now - lastSentTime <= 750) return;
+        if (now - lastSentTime <= getMessageQueCooldownMs()) return;
 
         String msg = messageQueue.poll();
-        sendCommand(msg);
+        executeCommand(msg);
         lastSentTime = now;
+    }
+
+    public static int getMessageQueCooldownMs(){
+        return CONFIG.MESSAGE_QUE_COOLDOWN_MS;
     }
 
     public static void updateSentTime(){
         lastSentTime = System.currentTimeMillis();
     }
 
-    private static void sendCommand(String msg) {
+    private static void executeCommand(String msg) {
         if (client.player == null) return;
         client.player.connection.sendCommand(msg);
     }
 
+    public static void sendCommand(String cmd) {queMessage(cmd);}
     public static void sendPartyMessage(String message){
         queMessage("pc " + message);
     }

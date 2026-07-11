@@ -18,7 +18,7 @@ public class Meow {
     private static void playMeow() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            mc.player.playSound(SoundEvents.CAT_AMBIENT, 1.0F, 1.0F);
+            mc.player.playSound(SoundEvents.CAT_AMBIENT_BABY.value(), 1.0F, 1.0F);
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.logy.pantheon.features.commands.main;
 
+import com.logy.pantheon.features.clientcommands.CommandPearls;
 import com.logy.pantheon.features.commands.guessgame.GuessingGame;
 import com.logy.pantheon.features.commands.hangman.HangmanGame;
 import com.logy.pantheon.features.commands.mathgame.MathGame;
@@ -15,10 +16,8 @@ public class FunCommands {
     public static void processMessage(String rawText){
         String cleanText = ChatUtils.stripFormatting(rawText);
 
-        if(cleanText.equalsIgnoreCase("You've caused a disturbance in the loch. Could it be... Nessie?")){
-            ChatUtils.sendPartyMessage("Ankara Messi!");
-            return;
-        }
+        // Autopearls module trigger.
+        CommandPearls.check(cleanText);
 
         if (!cleanText.contains(":") || !cleanText.startsWith("Party")) return;
 

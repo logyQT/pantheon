@@ -1,7 +1,7 @@
 package com.logy.pantheon.utils;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents;
 
 public class TPSMonitor {
 
@@ -18,7 +18,7 @@ public class TPSMonitor {
     public static void init() {
         lastWorldSwitchMs = System.currentTimeMillis();
 
-        ClientTickEvents.END_WORLD_TICK.register(world -> {
+        ClientTickEvents.END_LEVEL_TICK.register(world -> {
             long now = System.nanoTime();
 
             if (lastServerTickNano != -1) {
@@ -31,7 +31,7 @@ public class TPSMonitor {
             lastServerTickNano = now;
         });
 
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> onWorldChange());
+        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register((client, world) -> onWorldChange());
     }
 
     public static Double getTps() {

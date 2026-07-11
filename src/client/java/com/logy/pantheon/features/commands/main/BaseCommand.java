@@ -3,7 +3,7 @@ package com.logy.pantheon.features.commands.main;
 import com.logy.pantheon.utils.ChatUtils;
 
 public abstract class BaseCommand implements ICommand {
-    private static final int MAX_NAME_LENGTH = 16;
+    private static final int MAX_NAME_LENGTH = 32;
 
     @Override
     public void execute(String sender, String[] args) {
@@ -13,6 +13,10 @@ public abstract class BaseCommand implements ICommand {
             return;
         }
         onRun(sender, target, args);
+    }
+
+    protected final void send(String message){
+        ChatUtils.sendPartyMessage(message);
     }
 
     protected abstract void onRun(String sender, String target, String[] args);
