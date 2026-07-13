@@ -9,7 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 public class PantheonConfig {
-    private static final File CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("pantheon.json").toFile();
+    private static final File CONFIG_FILE = FabricLoader.getInstance().getConfigDir().resolve("pantheon/pantheon.json").toFile();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public boolean AUTO_EXPERIMENTS = false;
@@ -127,6 +127,7 @@ public class PantheonConfig {
     }
 
     public static void load() {
+        CONFIG_FILE.getParentFile().mkdirs();
         if (CONFIG_FILE.exists()) {
             try (FileReader reader = new FileReader(CONFIG_FILE)) {
                 INSTANCE = GSON.fromJson(reader, PantheonConfig.class);

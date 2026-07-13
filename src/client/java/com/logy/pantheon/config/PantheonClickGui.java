@@ -4,14 +4,18 @@ import com.logy.pantheon.config.gui.Category;
 import com.logy.pantheon.config.gui.Module;
 import com.logy.pantheon.config.gui.util.ColorUtil;
 import com.logy.pantheon.config.gui.widgets.BooleanWidget;
+import com.logy.pantheon.config.gui.widgets.ButtonWidget;
 import com.logy.pantheon.config.gui.widgets.SliderWidget;
 import com.logy.pantheon.config.gui.widgets.TextWidget;
+import com.logy.pantheon.features.commands.ascii.AsciiArt;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -134,6 +138,24 @@ public class PantheonClickGui extends Screen {
         party.add(wheel);
 
         panels.add(party);
+
+        // ── ASCII Pics Category ────────────────────────────
+        Category ascii = new Category("ASCII Pics", 390, 10);
+
+        Module asciiPics = new Module("Picture Commands");
+        asciiPics.add(new ButtonWidget("Open Folder", () -> {
+            File dir = FabricLoader.getInstance().getConfigDir().resolve("pantheon").toFile();
+            dir.mkdirs();
+            try {
+                Runtime.getRuntime().exec(new String[]{"cmd", "/c", "explorer", dir.getAbsolutePath()});
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }));
+        asciiPics.add(new ButtonWidget("Refresh", AsciiArt::refresh));
+        ascii.add(asciiPics);
+
+        panels.add(ascii);
     }
 
     @Override

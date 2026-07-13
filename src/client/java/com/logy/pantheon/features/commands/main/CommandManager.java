@@ -2,6 +2,7 @@ package com.logy.pantheon.features.commands.main;
 
 
 import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.features.commands.ascii.AsciiArt;
 import com.logy.pantheon.features.commands.hangman.WordLoader;
 import com.logy.pantheon.features.commands.wheelgame.WheelWordLoader;
 import com.logy.pantheon.features.commands.wordchain.WordChainLoader;
@@ -100,6 +101,7 @@ public class CommandManager {
 
     public static void init(){
         registerAll();
+        AsciiArt.init();
 
         WordLoader.loadWords();
         WheelWordLoader.loadPhrases();
@@ -113,6 +115,10 @@ public class CommandManager {
 
     public static void register(ICommand cmd) {
         commands.put(TOKEN + cmd.getName().toLowerCase(), cmd);
+    }
+
+    public static void unregister(String name) {
+        commands.remove(TOKEN + name.toLowerCase());
     }
 
     public static void handle(String sender, String content) {

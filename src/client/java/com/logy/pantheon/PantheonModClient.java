@@ -10,7 +10,7 @@ import com.logy.pantheon.utils.ChatUtils;
 import com.logy.pantheon.utils.DatabaseManager;
 import com.logy.pantheon.utils.TPSMonitor;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.lifecycle.v1.ClientLifecycleEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 
 import com.logy.pantheon.features.Experiments;
 
