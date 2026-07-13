@@ -64,9 +64,9 @@ public class PantheonClickGui extends Screen {
         blackjack.add(new SliderWidget("Max Bet", 1000, 5000000, 1000, () -> c.BLACKJACK_MAX_BET, v -> c.BLACKJACK_MAX_BET = v));
         blackjack.add(new SliderWidget("BJ Payout Mult", 10, 50, 1, () -> (int) (c.BLACKJACK_BJ_PAYOUT * 10), v -> c.BLACKJACK_BJ_PAYOUT = v / 10.0));
         blackjack.add(new SliderWidget("Insurance Mult", 10, 50, 1, () -> (int) (c.BLACKJACK_INSURANCE_PAYOUT * 10), v -> c.BLACKJACK_INSURANCE_PAYOUT = v / 10.0));
-        blackjack.add(new SliderWidget("Betting Time (s)", 5, 60, 1, () -> c.BLACKJACK_BETTING_TIME_S / 1000, v -> c.BLACKJACK_BETTING_TIME_S = v * 1000));
-        blackjack.add(new SliderWidget("Turn Time (s)", 10, 120, 1, () -> c.BLACKJACK_TURN_TIME_S / 1000, v -> c.BLACKJACK_TURN_TIME_S = v * 1000));
-        blackjack.add(new SliderWidget("Insurance Time (s)", 3, 30, 1, () -> c.BLACKJACK_INSURANCE_TIME_S / 1000, v -> c.BLACKJACK_INSURANCE_TIME_S = v * 1000));
+        blackjack.add(new SliderWidget("Betting Time (s)", 5, 60, 1, () -> c.BLACKJACK_BETTING_TIME_MS / 1000, v -> c.BLACKJACK_BETTING_TIME_MS = v * 1000));
+        blackjack.add(new SliderWidget("Turn Time (s)", 10, 120, 1, () -> c.BLACKJACK_TURN_TIME_MS / 1000, v -> c.BLACKJACK_TURN_TIME_MS = v * 1000));
+        blackjack.add(new SliderWidget("Insurance Time (s)", 3, 30, 1, () -> c.BLACKJACK_INSURANCE_TIME_MS / 1000, v -> c.BLACKJACK_INSURANCE_TIME_MS = v * 1000));
         party.add(blackjack);
 
         Module hangman = new Module("Hangman", () -> c.HANGMAN_ENABLED, v -> c.HANGMAN_ENABLED = v);

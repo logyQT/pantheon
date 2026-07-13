@@ -31,15 +31,7 @@ public class InventoryUtils {
         return total;
     }
 
-    public static int getItemCountByName(String itemName){
-        return 0;
-    }
-
     public static boolean hasEnoughById(String itemID, int requiredAmount) {
         return getItemCountById(itemID) >= requiredAmount;
-    }
-
-    public static boolean hasEnoughByName(String itemName, int requiredAmount){
-        return getItemCountByName(itemName) >= requiredAmount;
     }
 }

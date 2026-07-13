@@ -9,10 +9,6 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 
 public final class ScoreboardAreaMatcher {
-//    private static final long FALSE_DEBUG_COOLDOWN_MS = 3_000L;
-//    private static final int FALSE_DEBUG_MAX_LENGTH = 280;
-//    private static long lastFalseDebugAtMs;
-
     private ScoreboardAreaMatcher() {}
 
     public static boolean isInArea(String areaNameInScoreboard) {
@@ -27,7 +23,6 @@ public final class ScoreboardAreaMatcher {
         if (sidebar == null) return false;
 
         String haystack = normalizedSidebarText(scoreboard, sidebar);
-        // if (!matched) sendFalseDebug(areaNameInScoreboard);
         return haystack.contains(needle);
     }
 
@@ -80,22 +75,6 @@ public final class ScoreboardAreaMatcher {
         }
         builder.append(rawText);
     }
-
-//    private static void sendFalseDebug(String areaNameInScoreboard) {
-//        long now = System.currentTimeMillis();
-//        if (now - lastFalseDebugAtMs < FALSE_DEBUG_COOLDOWN_MS) {
-//            return;
-//        }
-//        lastFalseDebugAtMs = now;
-//
-//        String sidebar = sidebarContentsForDebug();
-//        if (sidebar.length() > FALSE_DEBUG_MAX_LENGTH) {
-//            sidebar = sidebar.substring(0, FALSE_DEBUG_MAX_LENGTH) + "...";
-//        }
-//        FeatureChat.sendPrefixed(
-//                "ScoreboardAreaMatcher",
-//                "isInArea false for '" + (areaNameInScoreboard == null ? "" : areaNameInScoreboard) + "'. Sidebar: " + sidebar);
-//    }
 
     private static String sidebarLine(Scoreboard scoreboard, PlayerScoreEntry entry) {
         if (entry.display() != null) {

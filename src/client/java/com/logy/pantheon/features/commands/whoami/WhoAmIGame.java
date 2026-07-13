@@ -92,8 +92,6 @@ public class WhoAmIGame implements GameInstance {
             );
             stop();
         } else {
-            //ChatUtils.sendPartyMessage("✘ Wrong! " + sender + " guessed: " + message.trim());
-            //advanceStage();
         }
     }
 

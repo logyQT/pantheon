@@ -10,7 +10,7 @@ import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 
 public class WordLoader {
-    private static List<HangmanWord> WORD_DATABASE = new ArrayList<>();
+    private static volatile List<HangmanWord> WORD_DATABASE = new ArrayList<>();
     private static final File WORDS_FILE = new File("config/pantheon/hangman_words.txt");
     private static final Random random = new Random();
 
@@ -33,8 +33,12 @@ public class WordLoader {
         });
     }
     public static HangmanWord getRandomWord(){
-        if(WORD_DATABASE.isEmpty()) loadWords();
-        return WORD_DATABASE.remove(random.nextInt(WORD_DATABASE.size()));
+        if (WORD_DATABASE.isEmpty()) loadWords();
+        try {
+            return WORD_DATABASE.remove(random.nextInt(WORD_DATABASE.size()));
+        } catch (IllegalArgumentException e) {
+            return new HangmanWord("HYPERION", "Skyblock", "Weapons", "The boom boom sword.");
+        }
     }
 
 }

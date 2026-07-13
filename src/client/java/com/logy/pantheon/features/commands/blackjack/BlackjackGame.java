@@ -3,7 +3,6 @@ package com.logy.pantheon.features.commands.blackjack;
 import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.BaseGame;
-import com.logy.pantheon.features.commands.main.BaseGame;
 import com.logy.pantheon.utils.ChatUtils;
 
 
@@ -33,13 +32,13 @@ public class BlackjackGame extends BaseGame {
         return CONFIG.BLACKJACK_MIN_BET;
     }
     private int getBettingTime(){
-        return CONFIG.BLACKJACK_BETTING_TIME_S * 1000;
+        return CONFIG.BLACKJACK_BETTING_TIME_MS;
     }
     private int getTurnTime(){
-        return CONFIG.BLACKJACK_TURN_TIME_S * 1000;
+        return CONFIG.BLACKJACK_TURN_TIME_MS;
     }
     private int getInsuranceTime(){
-        return CONFIG.BLACKJACK_INSURANCE_TIME_S * 1000;
+        return CONFIG.BLACKJACK_INSURANCE_TIME_MS;
     }
 
 

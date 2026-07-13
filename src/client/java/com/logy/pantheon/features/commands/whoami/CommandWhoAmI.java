@@ -4,7 +4,7 @@ import com.logy.pantheon.features.commands.main.AutoRegister;
 import com.logy.pantheon.features.commands.main.BaseCommand;
 import com.logy.pantheon.features.commands.main.CommandManager;
 
-//@AutoRegister
+@AutoRegister
 public class CommandWhoAmI extends BaseCommand {
 
     private static final WhoAmIGame game = new WhoAmIGame();

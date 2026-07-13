@@ -28,13 +28,6 @@ public class ReverseGuessingGame extends BaseGame {
             "Let's try %d."
     };
 
-    private static final String[] SNARKY_REPLIES = {
-            "That's not 'start'. Reading comprehension is hard, isn't it?",
-            "The instruction was simple: type 'start'. Try again...",
-            "I'm waiting for 'start' and I get this? My CPU is crying.",
-            "Invalid access code! Type 'start' before I overheat."
-    };
-
     @Override
     protected String getName() { return "Reverse Guess"; }
 
@@ -53,7 +46,6 @@ public class ReverseGuessingGame extends BaseGame {
 
         if (phase == GamePhase.WAITING_FOR_PLAYER) {
             if (!msg.equals("start")) return;
-            //send(SNARKY_REPLIES[random.nextInt(SNARKY_REPLIES.length)]);
 
             phase = GamePhase.GUESSING;
             send("Let's go! Reply with 'h' (higher), 'l' (lower), or 'win'.");

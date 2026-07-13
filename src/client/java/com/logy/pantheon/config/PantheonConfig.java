@@ -23,9 +23,9 @@ public class PantheonConfig {
 
     public Integer BLACKJACK_MIN_BET = 10;
     public Integer BLACKJACK_MAX_BET = 1000000;
-    public Integer BLACKJACK_BETTING_TIME_S = 11000;
-    public Integer BLACKJACK_TURN_TIME_S = 30000;
-    public Integer BLACKJACK_INSURANCE_TIME_S = 10000;
+    public Integer BLACKJACK_BETTING_TIME_MS = 11000;
+    public Integer BLACKJACK_TURN_TIME_MS = 30000;
+    public Integer BLACKJACK_INSURANCE_TIME_MS = 10000;
 
     public String FASTWARP_AREA_ONE = "dragon's nest";
     public String FASTWARP_AREA_TWO = "spider mound";
