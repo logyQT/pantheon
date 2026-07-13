@@ -1,18 +1,18 @@
 package com.logy.pantheon.features.commands.speedtyping;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.hangman.WordLoader;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
 
 public class SpeedTypingGame implements GameInstance {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
     private boolean active = false;
     private String targetWord = "";
     private long startTime = 0;
 
     private static long globalCooldown = 0;
-    private static final long COOLDOWN_MS = 60000; // 1 minuta
-    private static final int REWARD = 10;
 
     public void start() {
         long now = System.currentTimeMillis();
@@ -36,7 +36,7 @@ public class SpeedTypingGame implements GameInstance {
     public void update() {
         if (!active) return;
 
-        if (System.currentTimeMillis() - startTime > 10000) {
+        if (System.currentTimeMillis() - startTime > CONFIG.SPEEDTYPE_TIMEOUT_MS) {
             ChatUtils.sendPartyMessage("Typing game timed out! Nobody was fast enough.");
             setGlobalCooldown();
             stop();
@@ -52,16 +52,16 @@ public class SpeedTypingGame implements GameInstance {
         long timeTakenMs = System.currentTimeMillis() - startTime;
         double seconds = timeTakenMs / 1000.0;
 
-        ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + REWARD + " coins for typing it in " + String.format("%.2fs", seconds) + "!");
+        ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + CONFIG.SPEEDTYPE_REWARD + " coins for typing it in " + String.format("%.2fs", seconds) + "!");
 
-        Economy.addMoney(sender, REWARD);
+        Economy.addMoney(sender, CONFIG.SPEEDTYPE_REWARD);
 
         setGlobalCooldown();
         stop();
     }
 
     private void setGlobalCooldown() {
-        globalCooldown = System.currentTimeMillis() + COOLDOWN_MS;
+        globalCooldown = System.currentTimeMillis() + CONFIG.SPEEDTYPE_COOLDOWN_MS;
     }
 
     @Override

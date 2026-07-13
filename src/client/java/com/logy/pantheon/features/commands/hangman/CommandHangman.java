@@ -17,6 +17,6 @@ public class CommandHangman extends BaseCommand {
 
     @Override
     protected void onRun(String sender, String target, String[] args) {
-        CommandManager.tryStartGame(game::start);
+        CommandManager.tryStartGame("hangman", game::start);
     }
 }

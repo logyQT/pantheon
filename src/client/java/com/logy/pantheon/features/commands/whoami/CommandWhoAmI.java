@@ -18,6 +18,6 @@ public class CommandWhoAmI extends BaseCommand {
 
     @Override
     protected void onRun(String sender, String target, String[] args) {
-        CommandManager.tryStartGame(sender, game::start);
+        CommandManager.tryStartGame("whoami", sender, game::start);
     }
 }

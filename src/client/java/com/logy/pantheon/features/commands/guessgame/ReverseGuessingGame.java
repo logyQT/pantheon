@@ -1,9 +1,11 @@
 package com.logy.pantheon.features.commands.guessgame;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.main.BaseGame;
 import java.util.Random;
 
 public class ReverseGuessingGame extends BaseGame {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
 
     private enum GamePhase {
         WAITING_FOR_PLAYER,
@@ -91,7 +93,7 @@ public class ReverseGuessingGame extends BaseGame {
             return;
         }
 
-        if (low > high || attemptCount > 8) {
+        if (low > high || attemptCount > CONFIG.RGUESS_MAX_ATTEMPTS) {
             send("Attempt #" + attemptCount + "... Wait a second! Math says you're lying.");
             send("It shouldn't take this long for a range of 100. Ending the game, you cheater!");
             stop(StopReason.ERROR);
@@ -122,6 +124,6 @@ public class ReverseGuessingGame extends BaseGame {
 
     @Override
     protected long getTimeoutMs() {
-        return 60000L; // 60 seconds for player response
+        return CONFIG.RGUESS_TIMEOUT_MS;
     }
 }

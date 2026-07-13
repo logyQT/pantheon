@@ -17,6 +17,6 @@ public class CommandGuess extends BaseCommand {
 
     @Override
     protected void onRun(String sender, String target, String[] args) {
-        CommandManager.tryStartGame(sender, game::start);
+        CommandManager.tryStartGame("guess", sender, game::start);
     }
 }

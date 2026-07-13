@@ -1,15 +1,16 @@
 package com.logy.pantheon.features.commands.roulette;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.utils.ChatUtils;
 import java.util.*;
 
 public class RouletteGame implements GameInstance {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
     private boolean active = false;
     private final List<Bet> currentBets = new ArrayList<>();
     private long startTime = 0;
-    private static final int MAX_BETS_PER_PLAYER = 5;
 
     private static final Set<Integer> RED_NUMBERS = new HashSet<>(Arrays.asList(1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36));
 
@@ -20,7 +21,7 @@ public class RouletteGame implements GameInstance {
         active = true;
         currentBets.clear();
         startTime = System.currentTimeMillis();
-        ChatUtils.sendPartyMessage("✔ ROULETTE STARTED! Place bets (30s) using .bet <amount> <value>");
+        ChatUtils.sendPartyMessage("✔ ROULETTE STARTED! Place bets (" + (CONFIG.ROULETTE_BETTING_TIME_MS / 1000) + "s) using .bet <amount> <value>");
         ChatUtils.sendPartyMessage("Values: 0-36, 00, RED, BLACK, EVEN, ODD, 1st, C1, or numbers like 1,2,3");
     }
 
@@ -102,8 +103,8 @@ public class RouletteGame implements GameInstance {
 
         // Limit zakładów na gracza
         long playerBetCount = currentBets.stream().filter(b -> b.player.equalsIgnoreCase(sender)).count();
-        if (playerBetCount >= MAX_BETS_PER_PLAYER) {
-            ChatUtils.sendPartyMessage(sender + ", max " + MAX_BETS_PER_PLAYER + " bets allowed!");
+        if (playerBetCount >= CONFIG.ROULETTE_MAX_BETS_PER_PLAYER) {
+            ChatUtils.sendPartyMessage(sender + ", max " + CONFIG.ROULETTE_MAX_BETS_PER_PLAYER + " bets allowed!");
             return;
         }
 
@@ -173,7 +174,7 @@ public class RouletteGame implements GameInstance {
     }
 
     @Override public void update() {
-        if (active && System.currentTimeMillis() - startTime > 30000) spin();
+        if (active && System.currentTimeMillis() - startTime > CONFIG.ROULETTE_BETTING_TIME_MS) spin();
     }
     @Override public void stop() { active = false; }
     @Override public boolean isActive() { return active; }

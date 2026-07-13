@@ -10,9 +10,20 @@ base {
 	archivesName = project.archives_base_name
 }
 
+// ── .env support ─────────────────────────────────────
+def envFile = file('.env')
+if (envFile.exists()) {
+	envFile.readLines().each { line ->
+		line = line.trim()
+		if (line.isEmpty() || line.startsWith('#')) return
+		def parts = line.split('=', 2)
+		if (parts.length == 2) {
+			project.ext[parts[0].trim()] = parts[1].trim()
+		}
+	}
+}
+
 repositories {
-	maven { url "https://maven.isxander.dev/releases" }
-	maven { url "https://maven.terraformersmc.com/releases/" }
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
@@ -39,9 +50,11 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	implementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
-	implementation "com.terraformersmc:modmenu:${project.modmenu_version}"
-
+	// NanoVG for clickgui rendering
+	implementation "org.lwjgl:lwjgl-nanovg:3.4.1"
+	include "org.lwjgl:lwjgl-nanovg:3.4.1"
+	implementation "org.lwjgl:lwjgl-nanovg:3.4.1:natives-windows"
+	include "org.lwjgl:lwjgl-nanovg:3.4.1:natives-windows"
 
 	implementation "org.xerial:sqlite-jdbc:3.45.2.0"
 	include "org.xerial:sqlite-jdbc:3.45.2.0"
@@ -80,6 +93,39 @@ jar {
 		rename { "${it}_${inputs.properties.archivesName}"}
 	}
 }
+
+tasks.register('linkMod') {
+	def enabled = project.ext.has('copy_jar_to') ? Boolean.parseBoolean(project.ext.get('copy_jar_to')) : false
+	def targetDir = project.ext.has('copy_jar_dir') ? project.ext.get('copy_jar_dir') : ''
+	doLast {
+		if (!enabled) { println "[linkMod] disabled (copy_jar_to=false)"; return }
+		if (targetDir.isEmpty()) { println "[linkMod] no target dir (copy_jar_dir not set)"; return }
+		def modDir = file(targetDir)
+		def baseName = project.archives_base_name
+		def libs = fileTree('build/libs') {
+			include "${baseName}-*.jar"
+			exclude '*-sources.jar'
+		}
+		def jar = libs.files.max { it.lastModified() }
+
+		if (jar == null) throw new GradleException("No jar found in build/libs")
+
+		def link = new File(modDir, "${baseName}.jar")
+
+		modDir.mkdirs()
+		java.nio.file.Files.deleteIfExists(link.toPath())
+		try {
+			java.nio.file.Files.createSymbolicLink(link.toPath(), jar.toPath().toAbsolutePath())
+			println "[linkMod] Symlinked: ${link} -> ${jar.name}"
+		} catch (Exception e) {
+			println "[linkMod] Symlink failed (${e.message}), copying instead..."
+			link << jar.bytes
+			println "[linkMod] Copied: ${link} <- ${jar.name}"
+		}
+	}
+}
+
+build.finalizedBy linkMod
 
 // configure the maven publication
 publishing {

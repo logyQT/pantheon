@@ -1,5 +1,6 @@
 package com.logy.pantheon.features.commands.hackgame;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.utils.ChatUtils;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class HackGame implements GameInstance {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
     private boolean active = false;
     private String password = "";
     private String controlSum = "";
@@ -17,10 +19,6 @@ public class HackGame implements GameInstance {
     private static long globalCooldown = 0;
 
     private final Map<String, Integer> playerAttempts = new HashMap<>();
-    private static final int MAX_ATTEMPTS = 3;
-    private static final int REWARD = 100;
-    private static final long GAME_TIMEOUT_MS = 18000;
-    private static final long COOLDOWN_MS = 600000;
 
     public void start() {
         if (active) return;
@@ -47,7 +45,7 @@ public class HackGame implements GameInstance {
 
         ChatUtils.sendPartyMessage("HACK INITIALIZED! Decrypt the password.");
         ChatUtils.sendPartyMessage("Password: _ _ | Control sum: " + controlSum);
-        ChatUtils.sendPartyMessage("Time: 15s | Attempts: 3 | Format: X Y");
+        ChatUtils.sendPartyMessage("Time: " + (CONFIG.HACK_TIMEOUT_MS / 1000) + "s | Attempts: " + CONFIG.HACK_MAX_ATTEMPTS + " | Format: X Y");
     }
 
     private static @NotNull String getRemaining(long now) {
@@ -80,24 +78,24 @@ public class HackGame implements GameInstance {
         if (!guess.matches("\\d\\s\\d"))  return;
 
         int attempts = playerAttempts.getOrDefault(sender, 0) + 1;
-        if (attempts > MAX_ATTEMPTS) return;
+        if (attempts > CONFIG.HACK_MAX_ATTEMPTS) return;
         playerAttempts.put(sender, attempts);
 
         if (guess.equals(password)) {
-            ChatUtils.sendPartyMessage("✔ ACCESS GRANTED! " + sender + " decrypted " + password + " | Reward: " + REWARD + " coins");
-            Economy.addMoney(sender, REWARD);
+            ChatUtils.sendPartyMessage("✔ ACCESS GRANTED! " + sender + " decrypted " + password + " | Reward: " + CONFIG.HACK_REWARD + " coins");
+            Economy.addMoney(sender, CONFIG.HACK_REWARD);
             setGlobalCooldown();
             stop();
         } else {
-            if (attempts == MAX_ATTEMPTS) {
-                ChatUtils.sendPartyMessage(sender + " failed 3 attempts!");
+            if (attempts == CONFIG.HACK_MAX_ATTEMPTS) {
+                ChatUtils.sendPartyMessage(sender + " failed " + CONFIG.HACK_MAX_ATTEMPTS + " attempts!");
             }
         }
     }
 
     @Override
     public void update() {
-        if (active && System.currentTimeMillis() - startTime > GAME_TIMEOUT_MS) {
+        if (active && System.currentTimeMillis() - startTime > CONFIG.HACK_TIMEOUT_MS) {
             ChatUtils.sendPartyMessage("HACK FAILED! Connection timed out. The password was: " + password);
             setGlobalCooldown();
             stop();
@@ -105,7 +103,7 @@ public class HackGame implements GameInstance {
     }
 
     private void setGlobalCooldown() {
-        globalCooldown = System.currentTimeMillis() + COOLDOWN_MS;
+        globalCooldown = System.currentTimeMillis() + CONFIG.HACK_COOLDOWN_MS;
     }
 
     @Override public boolean isActive() { return active; }

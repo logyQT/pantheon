@@ -1,5 +1,6 @@
 package com.logy.pantheon.features.commands.hangman;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
 import java.io.*;
@@ -7,10 +8,11 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class HangmanGame implements GameInstance {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
     private boolean active = false;
     private HangmanWord currentWord;
     private List<Character> guessedLetters = new ArrayList<>();
-    private int lives = 6;
+    private int lives = CONFIG.HANGMAN_LIVES;
     private int wrongGuesses = 0;
     private final Random random = new Random();
     private long lastActivityTime = 0;
@@ -19,7 +21,7 @@ public class HangmanGame implements GameInstance {
         resetTimer();
         currentWord = WordLoader.getRandomWord();
         guessedLetters.clear();
-        lives = 6;
+        lives = CONFIG.HANGMAN_LIVES;
         wrongGuesses = 0;
         active = true;
 
@@ -112,7 +114,7 @@ public class HangmanGame implements GameInstance {
     public void update() {
         if(!active) return;
 
-        if(System.currentTimeMillis() - lastActivityTime > 60000){
+        if(System.currentTimeMillis() - lastActivityTime > CONFIG.HANGMAN_TIMEOUT_MS){
             ChatUtils.sendPartyMessage("Hangman game was canceled due to inactivity.");
             stop();
         }

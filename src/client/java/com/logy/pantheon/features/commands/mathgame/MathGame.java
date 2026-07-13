@@ -1,19 +1,19 @@
 package com.logy.pantheon.features.commands.mathgame;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
 import java.util.Random;
 
 public class MathGame implements GameInstance {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
     private boolean active = false;
     private int result = 0;
     private long startTime = 0;
     private final Random random = new Random();
 
     private static long globalCooldown = 0;
-    private static final long COOLDOWN_MS = 60000;
-    private static final int REWARD = 10;
 
     public void start() {
         if (active) return;
@@ -84,9 +84,9 @@ public class MathGame implements GameInstance {
             long timeTakenMs = System.currentTimeMillis() - startTime;
             double seconds = timeTakenMs / 1000.0;
 
-            ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + REWARD + " coins for solving it in " + String.format("%.2fs", seconds) + "! Answer: " + result);
+            ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + CONFIG.MATH_REWARD + " coins for solving it in " + String.format("%.2fs", seconds) + "! Answer: " + result);
 
-            Economy.addMoney(sender, REWARD);
+            Economy.addMoney(sender, CONFIG.MATH_REWARD);
 
             setGlobalCooldown();
             stop();
@@ -94,7 +94,7 @@ public class MathGame implements GameInstance {
     }
 
     private void setGlobalCooldown() {
-        globalCooldown = System.currentTimeMillis() + COOLDOWN_MS;
+        globalCooldown = System.currentTimeMillis() + CONFIG.MATH_COOLDOWN_MS;
     }
 
     @Override public void stop() { active = false; }
@@ -103,9 +103,9 @@ public class MathGame implements GameInstance {
     @Override public void update() {
         if(!active) return;
 
-        if(System.currentTimeMillis() - startTime > 10000){
+        if(System.currentTimeMillis() - startTime > CONFIG.MATH_TIMEOUT_MS){
             ChatUtils.sendPartyMessage("Nobody guessed! The solution was: " + result);
-            setGlobalCooldown(); // CD po timeout też się przyda
+            setGlobalCooldown();
             stop();
         }
     }

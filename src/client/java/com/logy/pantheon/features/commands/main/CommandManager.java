@@ -1,6 +1,7 @@
 package com.logy.pantheon.features.commands.main;
 
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.hangman.WordLoader;
 import com.logy.pantheon.features.commands.wheelgame.WheelWordLoader;
 import com.logy.pantheon.features.commands.wordchain.WordChainLoader;
@@ -51,7 +52,29 @@ public class CommandManager {
         ChatUtils.sendPartyMessage("A game is already in progress! Finish it or wait for timeout.");
     }
 
-    public static <T> void tryStartGame(T context, Consumer<T> gameStartLogic) {
+    public static boolean isGameEnabled(String gameName) {
+        PantheonConfig c = PantheonConfig.get();
+        return switch (gameName.toLowerCase()) {
+            case "blackjack" -> c.BLACKJACK_ENABLED;
+            case "hangman" -> c.HANGMAN_ENABLED;
+            case "hack" -> c.HACK_ENABLED;
+            case "wordchain" -> c.WORDCHAIN_ENABLED;
+            case "roulette" -> c.ROULETTE_ENABLED;
+            case "whoami" -> c.WHOAMI_ENABLED;
+            case "math" -> c.MATH_ENABLED;
+            case "speedtype" -> c.SPEEDTYPE_ENABLED;
+            case "guess" -> c.GUESS_ENABLED;
+            case "rguess" -> c.RGUESS_ENABLED;
+            case "wheel" -> c.WHEEL_ENABLED;
+            default -> true;
+        };
+    }
+
+    public static <T> void tryStartGame(String gameName, T context, Consumer<T> gameStartLogic) {
+        if (!isGameEnabled(gameName)) {
+            ChatUtils.sendPartyMessage("That game is currently disabled!");
+            return;
+        }
         if (isGameRunning()) {
             sendGameRunningError();
             return;
@@ -59,7 +82,11 @@ public class CommandManager {
         gameStartLogic.accept(context);
     }
 
-    public static void tryStartGame(Runnable gameStartLogic) {
+    public static void tryStartGame(String gameName, Runnable gameStartLogic) {
+        if (!isGameEnabled(gameName)) {
+            ChatUtils.sendPartyMessage("That game is currently disabled!");
+            return;
+        }
         if (isGameRunning()) {
             sendGameRunningError();
             return;

@@ -1,11 +1,13 @@
 package com.logy.pantheon.features.commands.wordchain;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.utils.ChatUtils;
 import java.util.*;
 
 public class WordChainGame implements GameInstance {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
     private boolean active = false;
     private boolean registrationOpen = false;
     private String lastWord = "";
@@ -13,9 +15,7 @@ public class WordChainGame implements GameInstance {
     private int chainCount = 0;
     private long lastActivityTime = 0;
 
-    private long currentTimeoutLimit = 20000;
-    private static final double TIMEOUT_REDUCTION_FACTOR = 0.95;
-    private static final int REGISTRATION_FEE = 100;
+    private long currentTimeoutLimit = CONFIG.WORDCHAIN_INITIAL_TIMEOUT_MS;
 
     private final Set<String> usedWords = new HashSet<>();
     private final List<String> players = new ArrayList<>();
@@ -28,12 +28,12 @@ public class WordChainGame implements GameInstance {
         active = true;
         registrationOpen = true;
         chainCount = 0;
-        currentTimeoutLimit = 20000;
+        currentTimeoutLimit = CONFIG.WORDCHAIN_INITIAL_TIMEOUT_MS;
         usedWords.clear();
         players.clear();
         wordsContributed.clear();
 
-        ChatUtils.sendPartyMessage("WORD CHAIN! Registration open (10s). Type .reg to join (Cost: " + REGISTRATION_FEE + ")");
+        ChatUtils.sendPartyMessage("WORD CHAIN! Registration open (11s). Type .reg to join (Cost: " + CONFIG.WORDCHAIN_REGISTRATION_FEE + ")");
         resetTimer();
     }
 
@@ -90,15 +90,15 @@ public class WordChainGame implements GameInstance {
     private void handleRegistration(String sender) {
         if (players.contains(sender)) return;
 
-        if (!Economy.hasEnough(sender, REGISTRATION_FEE)) {
-            ChatUtils.sendPartyMessage(sender + ", you need " + REGISTRATION_FEE + " coins to join!");
+        if (!Economy.hasEnough(sender, CONFIG.WORDCHAIN_REGISTRATION_FEE)) {
+            ChatUtils.sendPartyMessage(sender + ", you need " + CONFIG.WORDCHAIN_REGISTRATION_FEE + " coins to join!");
             return;
         }
 
-        if (Economy.takeMoney(sender, REGISTRATION_FEE)) {
+        if (Economy.takeMoney(sender, CONFIG.WORDCHAIN_REGISTRATION_FEE)) {
             players.add(sender);
             wordsContributed.put(sender, 0);
-            ChatUtils.sendPartyMessage(sender + " joined the chain! (Paid " + REGISTRATION_FEE + ")");
+            ChatUtils.sendPartyMessage(sender + " joined the chain! (Paid " + CONFIG.WORDCHAIN_REGISTRATION_FEE + ")");
         } else {
             ChatUtils.sendPartyMessage(sender + ", transaction failed! Check your balance.");
         }
@@ -111,7 +111,7 @@ public class WordChainGame implements GameInstance {
 
         updateRequirement(word);
 
-        currentTimeoutLimit = (long) (currentTimeoutLimit * TIMEOUT_REDUCTION_FACTOR);
+        currentTimeoutLimit = (long) (currentTimeoutLimit * (CONFIG.WORDCHAIN_TIMEOUT_DECAY_PCT / 100.0));
         if (currentTimeoutLimit < 3000) currentTimeoutLimit = 3000;
 
         ChatUtils.sendPartyMessage("Next: '" + requiredPrefix + "' | Time: " + (currentTimeoutLimit / 1000.0) + "s");

@@ -17,6 +17,6 @@ public class CommandBlackjack extends BaseCommand {
 
     @Override
     protected void onRun(String sender, String target, String[] args) {
-        CommandManager.tryStartGame(sender, game::start);
+        CommandManager.tryStartGame("blackjack", sender, game::start);
     }
 }

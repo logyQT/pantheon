@@ -1,11 +1,13 @@
 package com.logy.pantheon.features.commands.wheelgame;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
 import java.util.*;
 
 public class WheelGame implements GameInstance {
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
     private boolean active = false;
     private boolean registrationOpen = false;
 
@@ -22,7 +24,6 @@ public class WheelGame implements GameInstance {
     private static final Random random = new Random();
     private static final String VOWELS = "AĄEĘIOÓUY";
     private static final int[] WHEEL_VALUES = {100, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000, 2500};
-    private static final int REGISTRATION_FEE = 250;
 
     public void start() {
         if (active) return;
@@ -34,18 +35,18 @@ public class WheelGame implements GameInstance {
         stateStartTime = System.currentTimeMillis();
         activityTimer = System.currentTimeMillis();
 
-        ChatUtils.sendPartyMessage("KOŁO FORTUNY! Wpisowe: " + REGISTRATION_FEE + " coins. Zapisy (10s): wpisz .reg");
+        ChatUtils.sendPartyMessage("KOŁO FORTUNY! Wpisowe: " + CONFIG.WHEEL_REGISTRATION_FEE + " coins. Zapisy (11s): wpisz .reg");
     }
 
     private void handleRegistration(String sender) {
         if (players.contains(sender)) return;
 
-        if (!Economy.hasEnough(sender, REGISTRATION_FEE)) {
-            ChatUtils.sendPartyMessage(sender + ", nie masz wystarczająco pieniędzy! Potrzebujesz " + REGISTRATION_FEE + " coins.");
+        if (!Economy.hasEnough(sender, CONFIG.WHEEL_REGISTRATION_FEE)) {
+            ChatUtils.sendPartyMessage(sender + ", nie masz wystarczająco pieniędzy! Potrzebujesz " + CONFIG.WHEEL_REGISTRATION_FEE + " coins.");
             return;
         }
 
-        if (Economy.takeMoney(sender, REGISTRATION_FEE)) {
+        if (Economy.takeMoney(sender, CONFIG.WHEEL_REGISTRATION_FEE)) {
             players.add(sender);
             scores.put(sender, 0);
             ChatUtils.sendPartyMessage("✔ " + sender + " dołączył/a do gry! Pobrano opłatę.");
@@ -77,11 +78,11 @@ public class WheelGame implements GameInstance {
 
         if (VOWELS.indexOf(letter) != -1) {
             int currentPoints = scores.get(sender);
-            if (currentPoints >= 500) {
-                scores.put(sender, currentPoints - 500);
-                ChatUtils.sendPartyMessage("Kupiono samogłoskę (-500 pkt).");
+            if (currentPoints >= CONFIG.WHEEL_VOWEL_COST) {
+                scores.put(sender, currentPoints - CONFIG.WHEEL_VOWEL_COST);
+                ChatUtils.sendPartyMessage("Kupiono samogłoskę (-" + CONFIG.WHEEL_VOWEL_COST + " pkt).");
             } else {
-                ChatUtils.sendPartyMessage("Za mało punktów na samogłoskę! (Min. 500 pkt)");
+                ChatUtils.sendPartyMessage("Za mało punktów na samogłoskę! (Min. " + CONFIG.WHEEL_VOWEL_COST + " pkt)");
                 return;
             }
         }
@@ -113,7 +114,7 @@ public class WheelGame implements GameInstance {
         if (!sender.equalsIgnoreCase(players.get(currentPlayerIndex))) return;
 
         if (guess.equalsIgnoreCase(currentPhrase.phrase())) {
-            int bonus = 5000;
+            int bonus = CONFIG.WHEEL_PHRASE_BONUS;
             scores.put(sender, scores.get(sender) + bonus);
             finishGame(sender, " odgadł/a HASŁO!");
         } else {
@@ -209,7 +210,7 @@ public class WheelGame implements GameInstance {
             return;
         }
 
-        if (!registrationOpen && elapsed > 30000) {
+        if (!registrationOpen && elapsed > CONFIG.WHEEL_TURN_TIMEOUT_MS) {
             ChatUtils.sendPartyMessage(players.get(currentPlayerIndex) + " nie rusza się! Następny gracz.");
             shiftTurn();
         }

@@ -1,5 +1,6 @@
 package com.logy.pantheon.features.commands.whoami;
 
+import com.logy.pantheon.config.PantheonConfig;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
@@ -10,18 +11,10 @@ import java.util.Random;
 
 public class WhoAmIGame implements GameInstance {
 
-    // ── Economy ──────────────────────────────────────────────
-    private static final int ENTRY_COST   = 10;
-    private static final int PAYOUT_FAST  = 60;  // guessed on hint 1
-    private static final int PAYOUT_MID   = 40;  // guessed on hint 2
-    private static final int PAYOUT_SLOW  = 20;  // guessed on definition (even money)
+    private static final PantheonConfig CONFIG = PantheonConfig.get();
 
     // ── Cooldown ─────────────────────────────────────────────
-    private static final long COOLDOWN_MS  = 2 * 60 * 1000L;
     private static long lastUsed = 0;
-
-    // ── Hint timing ──────────────────────────────────────────
-    private static final long HINT_TIMEOUT_MS = 15_000L; // 20s per stage
 
     // ── State ────────────────────────────────────────────────
     private boolean active = false;
@@ -45,7 +38,7 @@ public class WhoAmIGame implements GameInstance {
     public void update() {
         if (!active) return;
 
-        if (System.currentTimeMillis() - stageStart >= HINT_TIMEOUT_MS) {
+        if (System.currentTimeMillis() - stageStart >= CONFIG.WHOAMI_HINT_TIMEOUT_MS) {
             advanceStage();
         }
     }
@@ -55,8 +48,8 @@ public class WhoAmIGame implements GameInstance {
         long now = System.currentTimeMillis();
         long elapsed = now - lastUsed;
 
-        if (elapsed < COOLDOWN_MS) {
-            ChatUtils.sendPartyMessage("WhoAmI is on cooldown! (" + TimeUtils.formatDuration(COOLDOWN_MS - elapsed) + " remaining)");
+        if (elapsed < CONFIG.WHOAMI_COOLDOWN_MS) {
+            ChatUtils.sendPartyMessage("WhoAmI is on cooldown! (" + TimeUtils.formatDuration(CONFIG.WHOAMI_COOLDOWN_MS - elapsed) + " remaining)");
             return false;
         }
 
@@ -66,9 +59,9 @@ public class WhoAmIGame implements GameInstance {
             return false;
         }
 
-        if (!Economy.takeMoney(sender, ENTRY_COST)) {
+        if (!Economy.takeMoney(sender, CONFIG.WHOAMI_ENTRY_COST)) {
             ChatUtils.sendPartyMessage(
-                    sender + " can't afford to start! (costs " + ENTRY_COST +
+                    sender + " can't afford to start! (costs " + CONFIG.WHOAMI_ENTRY_COST +
                             " coins, balance: " + Economy.getCurrentBalance(sender) + ")"
             );
             return false;
@@ -80,7 +73,7 @@ public class WhoAmIGame implements GameInstance {
         stageStart = now;
         lastUsed   = now;
 
-        ChatUtils.sendPartyMessage("WhoAmI? started! (-" + ENTRY_COST + " coins)");
+        ChatUtils.sendPartyMessage("WhoAmI? started! (-" + CONFIG.WHOAMI_ENTRY_COST + " coins)");
         printStage();
         return true;
     }
@@ -143,9 +136,9 @@ public class WhoAmIGame implements GameInstance {
 
     private int payoutForStage() {
         return switch (stage) {
-            case 0, 1 -> PAYOUT_FAST;
-            case 2    -> PAYOUT_MID;
-            default   -> PAYOUT_SLOW;
+            case 0, 1 -> CONFIG.WHOAMI_PAYOUT_FAST;
+            case 2    -> CONFIG.WHOAMI_PAYOUT_MID;
+            default   -> CONFIG.WHOAMI_PAYOUT_SLOW;
         };
     }
 }

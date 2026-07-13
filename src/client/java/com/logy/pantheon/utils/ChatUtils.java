@@ -17,46 +17,127 @@ import static com.logy.pantheon.PantheonMod.LOGGER;
 
 public class ChatUtils {
 
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
-
     private static final Minecraft client = Minecraft.getInstance();
 
-    private static final Queue<String> messageQueue = new LinkedList<>();
+    private record QueueEntry(String message, boolean confirmable) {}
+    private static final Queue<QueueEntry> queue = new LinkedList<>();
     private static long lastSentTime = 0;
+    private static QueueEntry pendingEntry = null;
+    private static long pendingTimestamp = 0;
+    private static int pendingRetries = 0;
+
+    private static String username = null;
+
+    public static String getUsername() {
+        if (username == null) {
+            username = Minecraft.getInstance().getUser().getName();
+        }
+        return username;
+    }
+
+    public static void updateSentTime() {
+        lastSentTime = System.currentTimeMillis();
+    }
+
+    private static int getMaxRetries() {
+        return PantheonConfig.get().MESSAGE_QUE_MAX_RETRIES;
+    }
 
     public static void queMessage(String message) {
         if(message.length()>=200) {
-            LOGGER.info("Message too long" + message);
+            LOGGER.info("Message too long " + message);
             return;
         }
-        messageQueue.add(message);
+        queue.add(new QueueEntry(message, true));
+        LOGGER.debug("[Queue] +1 confirmable (size={}): {}", queue.size(), message);
+    }
+
+    public static void queCommand(String command) {
+        if(command.length()>=200) {
+            LOGGER.info("Command too long " + command);
+            return;
+        }
+        queue.add(new QueueEntry(command, false));
+        LOGGER.debug("[Queue] +1 fire-and-forget (size={}): {}", queue.size(), command);
     }
 
     public static void tickQueue() {
         long now = System.currentTimeMillis();
 
-        if (messageQueue.isEmpty()) return;
+        if (pendingEntry != null) {
+            if (pendingEntry.confirmable() && now - pendingTimestamp > 3000) {
+                pendingRetries++;
+                if (pendingRetries > getMaxRetries()) {
+                    LOGGER.warn("[Queue] Dropping after {} retries: {}", getMaxRetries(), pendingEntry.message());
+                    queue.poll();
+                    pendingEntry = null;
+                    pendingRetries = 0;
+                    return;
+                }
+                LOGGER.debug("[Queue] Retry {}/{}: {}", pendingRetries, getMaxRetries(), pendingEntry.message());
+                executeCommand(pendingEntry.message());
+                pendingTimestamp = now;
+            } else if (pendingEntry.confirmable()) {
+                LOGGER.trace("[Queue] Waiting for confirmation ({}ms remain)", 3000 - (now - pendingTimestamp));
+            }
+            return;
+        }
+
+        if (queue.isEmpty()) return;
         if (now - lastSentTime <= getMessageQueCooldownMs()) return;
 
-        String msg = messageQueue.poll();
-        executeCommand(msg);
+        QueueEntry entry = queue.peek();
+        if (entry == null) return;
+
+        if (!entry.confirmable()) {
+            queue.poll();
+            LOGGER.debug("[Queue] Executing fire-and-forget: {}", entry.message());
+            executeCommand(entry.message());
+            lastSentTime = now;
+            return;
+        }
+
+        pendingEntry = entry;
+        LOGGER.debug("[Queue] Sending confirmable (will wait for echo): {}", entry.message());
+        executeCommand(entry.message());
+        pendingTimestamp = now;
         lastSentTime = now;
     }
 
-    public static int getMessageQueCooldownMs(){
-        return CONFIG.MESSAGE_QUE_COOLDOWN_MS;
+    private static void confirmMessage(String chatMessage) {
+        if (pendingEntry == null || !pendingEntry.confirmable()) return;
+
+        String text = pendingEntry.message();
+        if (text.startsWith("pc ")) text = text.substring(3);
+        else if (text.startsWith("gc ")) text = text.substring(3);
+        else if (text.startsWith("ac ")) text = text.substring(3);
+
+        text = text.trim();
+
+        if (chatMessage.contains(text)) {
+            LOGGER.debug("[Queue] Confirmed match \"{}\" -> {}", text, chatMessage);
+            queue.poll();
+            pendingEntry = null;
+            pendingRetries = 0;
+        } else {
+            LOGGER.trace("[Queue] No match for \"{}\" in \"{}\"", text, chatMessage);
+        }
     }
 
-    public static void updateSentTime(){
-        lastSentTime = System.currentTimeMillis();
+    public static int getMessageQueCooldownMs(){
+        return PantheonConfig.get().MESSAGE_QUE_COOLDOWN_MS;
     }
 
     private static void executeCommand(String msg) {
-        if (client.player == null) return;
+        if (client.player == null) {
+            LOGGER.warn("[Queue] Cannot send (player null): {}", msg);
+            return;
+        }
+        LOGGER.debug("[Queue] -> sendCommand: {}", msg);
         client.player.connection.sendCommand(msg);
     }
 
-    public static void sendCommand(String cmd) {queMessage(cmd);}
+    public static void sendCommand(String cmd) {queCommand(cmd);}
     public static void sendPartyMessage(String message){
         queMessage("pc " + message);
     }
@@ -87,6 +168,10 @@ public class ChatUtils {
     }
 
     private static void messageHandler(String message){
+        confirmMessage(message);
+        if (stripFormatting(message).contains(getUsername())) {
+            updateSentTime();
+        }
         FunCommands.processMessage(message);
         Meow.handleChat(message);
     }

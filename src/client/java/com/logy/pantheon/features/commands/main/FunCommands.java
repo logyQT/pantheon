@@ -25,8 +25,6 @@ public class FunCommands {
         String senderName = parts[0].substring(parts[0].lastIndexOf(" ") + 1);
         String content = parts[1].trim();
 
-        if (senderName.equalsIgnoreCase("catgirlbialas")) ChatUtils.updateSentTime();
-
         //if(content.equalsIgnoreCase("t")) ChatUtils.sendPartyMessage("TPS: " + TPSMonitor.getTps());
 
         if (content.startsWith(CommandManager.TOKEN)) {

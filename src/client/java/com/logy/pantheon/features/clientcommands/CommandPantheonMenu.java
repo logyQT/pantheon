@@ -1,6 +1,6 @@
 package com.logy.pantheon.features.clientcommands;
 
-import com.logy.pantheon.config.ModMenuIntegration;
+import com.logy.pantheon.config.PantheonClickGui;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
@@ -17,7 +17,7 @@ public class CommandPantheonMenu extends ClientCommandBase {
         builder.executes(context -> {
             Minecraft client = Minecraft.getInstance();
             client.execute(() -> {
-                client.setScreen(ModMenuIntegration.createConfigScreen(null));
+                client.setScreen(new PantheonClickGui(client.screen));
             });
             return 1;
         });

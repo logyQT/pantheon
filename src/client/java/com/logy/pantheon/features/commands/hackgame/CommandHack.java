@@ -17,6 +17,6 @@ public class CommandHack extends BaseCommand {
 
     @Override
     protected void onRun(String sender, String target, String[] args) {
-        CommandManager.tryStartGame(game::start);
+        CommandManager.tryStartGame("hack", game::start);
     }
 }
