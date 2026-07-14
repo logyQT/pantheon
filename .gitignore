@@ -42,3 +42,10 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+docs/internal
+
+# dev symlink to live MC config
+
+.pantheon/
+AGENTS.md

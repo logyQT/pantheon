@@ -1,6 +1,8 @@
 package com.logy.pantheon.features.commands.blackjack;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.BaseGame;
 import com.logy.pantheon.utils.ChatUtils;
@@ -11,7 +13,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BlackjackGame extends BaseGame {
 
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("blackjack", "Blackjack", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("min_bet", "Min Bet", 1, 1000, 1, 10));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("max_bet", "Max Bet", 1000, 5000000, 1000, 1000000));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("bj_payout", "BJ Payout (x10)", 10, 50, 1, 25));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("insurance_payout", "Insurance (x10)", 10, 50, 1, 30));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("betting_time_ms", "Betting Time (s)", 5000, 60000, 1000, 11000));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("turn_time_ms", "Turn Time (s)", 10000, 120000, 1000, 30000));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("insurance_time_ms", "Insurance Time (s)", 3000, 30000, 1000, 10000));
+        ModuleRegistry.registerSetting("blackjack", SettingDefinition.slider("timeout_ms", "Game Timeout", 10000, 120000, 1000, 60000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("blackjack");
 
     private enum BlackjackPhase {
         BETTING, INSURANCE, PLAYER_TURNS, DEALER_TURN
@@ -26,19 +41,19 @@ public class BlackjackGame extends BaseGame {
     private int currentHandIndex = 0;
 
     private int getMaxBet(){
-        return CONFIG.BLACKJACK_MAX_BET;
+        return CONFIG.getInt("max_bet");
     }
     private int getMinBet(){
-        return CONFIG.BLACKJACK_MIN_BET;
+        return CONFIG.getInt("min_bet");
     }
     private int getBettingTime(){
-        return CONFIG.BLACKJACK_BETTING_TIME_MS;
+        return CONFIG.getInt("betting_time_ms");
     }
     private int getTurnTime(){
-        return CONFIG.BLACKJACK_TURN_TIME_MS;
+        return CONFIG.getInt("turn_time_ms");
     }
     private int getInsuranceTime(){
-        return CONFIG.BLACKJACK_INSURANCE_TIME_MS;
+        return CONFIG.getInt("insurance_time_ms");
     }
 
 
@@ -278,7 +293,7 @@ public class BlackjackGame extends BaseGame {
                 send(h.playerName + ": PUSH (Both have Blackjack)!");
             }
             else if (playerBJ) {
-                int payout = (int) (h.bet * CONFIG.BLACKJACK_BJ_PAYOUT);
+                int payout = (int) (h.bet * (CONFIG.getInt("bj_payout") / 10.0));
                 Economy.addMoney(h.playerName, payout);
                 send(h.playerName + ": BLACKJACK! Wins " + payout);
             }
@@ -300,7 +315,7 @@ public class BlackjackGame extends BaseGame {
 
         if (dealerBJ) {
             insuranceBets.forEach((name, amount) -> {
-                int payout = (int) (amount * CONFIG.BLACKJACK_INSURANCE_PAYOUT);
+                int payout = (int) (amount * (CONFIG.getInt("insurance_payout") / 10.0));
                 Economy.addMoney(name, payout);
                 send(name + ": Insurance payout +" + payout);
             });
@@ -349,7 +364,7 @@ public class BlackjackGame extends BaseGame {
 
     @Override
     protected long getTimeoutMs() {
-        return CONFIG.BLACKJACK_TIMEOUT_MS;
+        return CONFIG.getInt("timeout_ms");
     }
 
     private static class HandSession {

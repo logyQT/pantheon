@@ -1,11 +1,6 @@
 package com.logy.pantheon.features.commands.main;
 
 import com.logy.pantheon.features.clientcommands.CommandPearls;
-import com.logy.pantheon.features.commands.guessgame.GuessingGame;
-import com.logy.pantheon.features.commands.hangman.HangmanGame;
-import com.logy.pantheon.features.commands.mathgame.MathGame;
-import com.logy.pantheon.features.commands.speedtyping.SpeedTypingGame;
-import com.logy.pantheon.features.commands.wheelgame.WheelGame;
 import com.logy.pantheon.utils.ChatUtils;
 import com.logy.pantheon.utils.TPSMonitor;
 

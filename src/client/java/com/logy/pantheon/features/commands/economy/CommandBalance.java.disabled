@@ -1,10 +1,8 @@
 package com.logy.pantheon.features.commands.economy;
 
-import com.logy.pantheon.features.commands.main.AutoRegister;
 import com.logy.pantheon.features.commands.main.BaseCommand;
 import com.logy.pantheon.utils.ChatUtils;
 
-@AutoRegister
 public class CommandBalance extends BaseCommand {
 
     @Override

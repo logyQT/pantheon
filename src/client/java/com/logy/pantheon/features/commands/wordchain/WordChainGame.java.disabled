@@ -1,13 +1,23 @@
 package com.logy.pantheon.features.commands.wordchain;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.utils.ChatUtils;
 import java.util.*;
 
 public class WordChainGame implements GameInstance {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("wordchain", "Word Chain", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("wordchain", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("wordchain", SettingDefinition.slider("registration_fee", "Reg. Fee", 0, 1000, 10, 100));
+        ModuleRegistry.registerSetting("wordchain", SettingDefinition.slider("initial_timeout_ms", "Init. Timeout (s)", 5000, 60000, 1000, 20000));
+        ModuleRegistry.registerSetting("wordchain", SettingDefinition.slider("timeout_decay_pct", "Timeout Decay %", 50, 100, 1, 95));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("wordchain");
     private boolean active = false;
     private boolean registrationOpen = false;
     private String lastWord = "";
@@ -15,7 +25,7 @@ public class WordChainGame implements GameInstance {
     private int chainCount = 0;
     private long lastActivityTime = 0;
 
-    private long currentTimeoutLimit = CONFIG.WORDCHAIN_INITIAL_TIMEOUT_MS;
+    private long currentTimeoutLimit = CONFIG.getInt("initial_timeout_ms");
 
     private final Set<String> usedWords = new HashSet<>();
     private final List<String> players = new ArrayList<>();
@@ -28,12 +38,12 @@ public class WordChainGame implements GameInstance {
         active = true;
         registrationOpen = true;
         chainCount = 0;
-        currentTimeoutLimit = CONFIG.WORDCHAIN_INITIAL_TIMEOUT_MS;
+        currentTimeoutLimit = CONFIG.getInt("initial_timeout_ms");
         usedWords.clear();
         players.clear();
         wordsContributed.clear();
 
-        ChatUtils.sendPartyMessage("WORD CHAIN! Registration open (11s). Type .reg to join (Cost: " + CONFIG.WORDCHAIN_REGISTRATION_FEE + ")");
+        ChatUtils.sendPartyMessage("WORD CHAIN! Registration open (11s). Type .reg to join (Cost: " + CONFIG.getInt("registration_fee") + ")");
         resetTimer();
     }
 
@@ -90,15 +100,16 @@ public class WordChainGame implements GameInstance {
     private void handleRegistration(String sender) {
         if (players.contains(sender)) return;
 
-        if (!Economy.hasEnough(sender, CONFIG.WORDCHAIN_REGISTRATION_FEE)) {
-            ChatUtils.sendPartyMessage(sender + ", you need " + CONFIG.WORDCHAIN_REGISTRATION_FEE + " coins to join!");
+        int fee = CONFIG.getInt("registration_fee");
+        if (!Economy.hasEnough(sender, fee)) {
+            ChatUtils.sendPartyMessage(sender + ", you need " + fee + " coins to join!");
             return;
         }
 
-        if (Economy.takeMoney(sender, CONFIG.WORDCHAIN_REGISTRATION_FEE)) {
+        if (Economy.takeMoney(sender, fee)) {
             players.add(sender);
             wordsContributed.put(sender, 0);
-            ChatUtils.sendPartyMessage(sender + " joined the chain! (Paid " + CONFIG.WORDCHAIN_REGISTRATION_FEE + ")");
+            ChatUtils.sendPartyMessage(sender + " joined the chain! (Paid " + fee + ")");
         } else {
             ChatUtils.sendPartyMessage(sender + ", transaction failed! Check your balance.");
         }
@@ -111,7 +122,7 @@ public class WordChainGame implements GameInstance {
 
         updateRequirement(word);
 
-        currentTimeoutLimit = (long) (currentTimeoutLimit * (CONFIG.WORDCHAIN_TIMEOUT_DECAY_PCT / 100.0));
+        currentTimeoutLimit = (long) (currentTimeoutLimit * (CONFIG.getInt("timeout_decay_pct") / 100.0));
         if (currentTimeoutLimit < 3000) currentTimeoutLimit = 3000;
 
         ChatUtils.sendPartyMessage("Next: '" + requiredPrefix + "' | Time: " + (currentTimeoutLimit / 1000.0) + "s");

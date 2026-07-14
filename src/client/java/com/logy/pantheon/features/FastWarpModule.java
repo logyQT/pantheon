@@ -1,6 +1,8 @@
 package com.logy.pantheon.features;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.utils.ChatUtils;
 import com.logy.pantheon.utils.ScoreboardAreaMatcher;
 
@@ -14,10 +16,19 @@ public class FastWarpModule {
 
     private static long canWarpTime = 0;
 
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    private static final ModuleConfig CONFIG = ModuleConfig.get("fast_teleport");
     private static KeyMapping warpKey;
     public static final KeyMapping.Category PANTHEON_CATEGORY =
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath("pantheon", "modules"));
+
+    public static void register() {
+        ModuleRegistry.registerModule("fast_teleport", "Fast Teleport", "Main", "java", false);
+        ModuleRegistry.registerSetting("fast_teleport", SettingDefinition.slider("ptc_protection_ms", "Warp PTC Protection", 0, 5000, 100, 5000));
+        ModuleRegistry.registerSetting("fast_teleport", SettingDefinition.text("area_one", "Warp Area 1", "dragon's nest"));
+        ModuleRegistry.registerSetting("fast_teleport", SettingDefinition.text("cmd_one", "Warp Cmd 1", "warp top"));
+        ModuleRegistry.registerSetting("fast_teleport", SettingDefinition.text("area_two", "Warp Area 2", "spider mound"));
+        ModuleRegistry.registerSetting("fast_teleport", SettingDefinition.text("cmd_two", "Warp Cmd 2", "warp drag"));
+    }
 
     public static void init() {
         warpKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
@@ -36,17 +47,17 @@ public class FastWarpModule {
     }
 
     private static boolean canWarp(){
-        if(CONFIG.FASTWARP_PTC_PROTECTION_MS == 0) return true;
+        if(CONFIG.getInt("ptc_protection_ms") == 0) return true;
         return now() >= canWarpTime;
     }
 
     private static void handleWarp() {
-        if (ScoreboardAreaMatcher.isInArea(CONFIG.FASTWARP_AREA_ONE)) {
-            ChatUtils.sendCommand(CONFIG.FASTWARP_CMD_ONE);
-        } else if (ScoreboardAreaMatcher.isInArea(CONFIG.FASTWARP_AREA_TWO)) {
-            ChatUtils.sendCommand(CONFIG.FASTWARP_CMD_TWO);
+        if (ScoreboardAreaMatcher.isInArea(CONFIG.getString("area_one"))) {
+            ChatUtils.sendCommand(CONFIG.getString("cmd_one"));
+        } else if (ScoreboardAreaMatcher.isInArea(CONFIG.getString("area_two"))) {
+            ChatUtils.sendCommand(CONFIG.getString("cmd_two"));
         }
-        canWarpTime = now() + CONFIG.FASTWARP_PTC_PROTECTION_MS;
+        canWarpTime = now() + CONFIG.getInt("ptc_protection_ms");
     }
 
     private static long now(){

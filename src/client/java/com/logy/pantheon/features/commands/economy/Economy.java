@@ -55,6 +55,13 @@ public class Economy {
         saveToDatabase(name, next);
     }
 
+    public static void set(String playerName, int amount) {
+        if (amount < 0) return;
+        String name = playerName.toLowerCase();
+        balances.computeIfAbsent(name, k -> new AtomicInteger(0)).set(amount);
+        saveToDatabase(name, amount);
+    }
+
     private static void saveToDatabase(String playerName, int amount) {
         String sql = "INSERT INTO economy(player_name, balance) VALUES(?, ?) " +
                 "ON CONFLICT(player_name) DO UPDATE SET balance = ?";

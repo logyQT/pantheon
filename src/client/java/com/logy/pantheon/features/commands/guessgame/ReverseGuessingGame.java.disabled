@@ -1,11 +1,20 @@
 package com.logy.pantheon.features.commands.guessgame;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.main.BaseGame;
 import java.util.Random;
 
 public class ReverseGuessingGame extends BaseGame {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("rguess", "Reverse Guess", "Party Games", "java", false);
+        ModuleRegistry.registerSetting("rguess", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("rguess", SettingDefinition.slider("max_attempts", "Max Attempts", 1, 20, 1, 8));
+        ModuleRegistry.registerSetting("rguess", SettingDefinition.slider("timeout_ms", "Timeout (s)", 10000, 120000, 5000, 60000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("rguess");
 
     private enum GamePhase {
         WAITING_FOR_PLAYER,
@@ -85,7 +94,7 @@ public class ReverseGuessingGame extends BaseGame {
             return;
         }
 
-        if (low > high || attemptCount > CONFIG.RGUESS_MAX_ATTEMPTS) {
+        if (low > high || attemptCount > CONFIG.getInt("max_attempts")) {
             send("Attempt #" + attemptCount + "... Wait a second! Math says you're lying.");
             send("It shouldn't take this long for a range of 100. Ending the game, you cheater!");
             stop(StopReason.ERROR);
@@ -116,6 +125,6 @@ public class ReverseGuessingGame extends BaseGame {
 
     @Override
     protected long getTimeoutMs() {
-        return CONFIG.RGUESS_TIMEOUT_MS;
+        return CONFIG.getInt("timeout_ms");
     }
 }

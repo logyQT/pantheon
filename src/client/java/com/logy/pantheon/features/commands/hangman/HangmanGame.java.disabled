@@ -1,6 +1,8 @@
 package com.logy.pantheon.features.commands.hangman;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
 import java.io.*;
@@ -8,11 +10,18 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class HangmanGame implements GameInstance {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("hangman", "Hangman", "Party Games", "java", false);
+        ModuleRegistry.registerSetting("hangman", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("hangman", SettingDefinition.slider("lives", "Lives", 1, 10, 1, 6));
+        ModuleRegistry.registerSetting("hangman", SettingDefinition.slider("timeout_ms", "Timeout (s)", 10000, 120000, 5000, 60000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("hangman");
     private boolean active = false;
     private HangmanWord currentWord;
     private List<Character> guessedLetters = new ArrayList<>();
-    private int lives = CONFIG.HANGMAN_LIVES;
+    private int lives = CONFIG.getInt("lives");
     private int wrongGuesses = 0;
     private final Random random = new Random();
     private long lastActivityTime = 0;
@@ -21,7 +30,7 @@ public class HangmanGame implements GameInstance {
         resetTimer();
         currentWord = WordLoader.getRandomWord();
         guessedLetters.clear();
-        lives = CONFIG.HANGMAN_LIVES;
+        lives = CONFIG.getInt("lives");
         wrongGuesses = 0;
         active = true;
 
@@ -114,7 +123,7 @@ public class HangmanGame implements GameInstance {
     public void update() {
         if(!active) return;
 
-        if(System.currentTimeMillis() - lastActivityTime > CONFIG.HANGMAN_TIMEOUT_MS){
+        if(System.currentTimeMillis() - lastActivityTime > CONFIG.getInt("timeout_ms")){
             ChatUtils.sendPartyMessage("Hangman game was canceled due to inactivity.");
             stop();
         }

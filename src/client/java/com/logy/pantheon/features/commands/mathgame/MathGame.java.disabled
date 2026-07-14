@@ -1,13 +1,23 @@
 package com.logy.pantheon.features.commands.mathgame;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
 import java.util.Random;
 
 public class MathGame implements GameInstance {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("math", "Math Game", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("math", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("math", SettingDefinition.slider("reward", "Reward", 1, 100, 1, 10));
+        ModuleRegistry.registerSetting("math", SettingDefinition.slider("cooldown_ms", "Cooldown (m)", 10000, 600000, 60000, 60000));
+        ModuleRegistry.registerSetting("math", SettingDefinition.slider("timeout_ms", "Timeout (s)", 5000, 60000, 1000, 10000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("math");
     private boolean active = false;
     private int result = 0;
     private long startTime = 0;
@@ -84,9 +94,10 @@ public class MathGame implements GameInstance {
             long timeTakenMs = System.currentTimeMillis() - startTime;
             double seconds = timeTakenMs / 1000.0;
 
-            ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + CONFIG.MATH_REWARD + " coins for solving it in " + String.format("%.2fs", seconds) + "! Answer: " + result);
+            int reward = CONFIG.getInt("reward");
+            ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + reward + " coins for solving it in " + String.format("%.2fs", seconds) + "! Answer: " + result);
 
-            Economy.addMoney(sender, CONFIG.MATH_REWARD);
+            Economy.addMoney(sender, reward);
 
             setGlobalCooldown();
             stop();
@@ -94,7 +105,7 @@ public class MathGame implements GameInstance {
     }
 
     private void setGlobalCooldown() {
-        globalCooldown = System.currentTimeMillis() + CONFIG.MATH_COOLDOWN_MS;
+        globalCooldown = System.currentTimeMillis() + CONFIG.getInt("cooldown_ms");
     }
 
     @Override public void stop() { active = false; }
@@ -103,7 +114,7 @@ public class MathGame implements GameInstance {
     @Override public void update() {
         if(!active) return;
 
-        if(System.currentTimeMillis() - startTime > CONFIG.MATH_TIMEOUT_MS){
+        if(System.currentTimeMillis() - startTime > CONFIG.getInt("timeout_ms")){
             ChatUtils.sendPartyMessage("Nobody guessed! The solution was: " + result);
             setGlobalCooldown();
             stop();

@@ -1,6 +1,8 @@
 package com.logy.pantheon.features.clientcommands;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.utils.NumberUtils;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
@@ -8,7 +10,12 @@ import net.minecraft.client.Minecraft;
 
 public class CommandPearls extends ClientCommandBase {
 
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("auto_pearls", "Auto Pearls", "Main", "java", false);
+        ModuleRegistry.registerSetting("auto_pearls", SettingDefinition.bool("enabled", "Enabled", true));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("auto_pearls");
 
     private static final int TARGET_PEARLS = 16;
 
@@ -19,7 +26,7 @@ public class CommandPearls extends ClientCommandBase {
 
     public static void check(String message){
         if(!canAutoBuy()) return;
-        if(!CONFIG.AUTO_PEARLS) return;
+        if(!CONFIG.getBool("enabled")) return;
         if(!message.startsWith(messages[current_message_index])) return;
         current_message_index = NumberUtils.getRandomNumber(0, messages.length-1);
         canAutoBuyTime = now() + autoBuyTimeoutMs;

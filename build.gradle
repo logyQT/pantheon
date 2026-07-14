@@ -24,11 +24,7 @@ if (envFile.exists()) {
 }
 
 repositories {
-	// Add repositories to retrieve artifacts from in here.
-	// You should only use this when depending on other mods because
-	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
-	// for more information about repositories.
+	mavenCentral()
 }
 
 loom {
@@ -58,10 +54,10 @@ dependencies {
 
 	implementation "org.xerial:sqlite-jdbc:3.45.2.0"
 	include "org.xerial:sqlite-jdbc:3.45.2.0"
-	implementation 'org.reflections:reflections:0.10.2'
-	include 'org.reflections:reflections:0.10.2'
-	implementation 'org.javassist:javassist:3.30.2-GA'
-	include 'org.javassist:javassist:3.30.2-GA'
+
+
+	implementation "org.mozilla:rhino:1.9.1"
+	include "org.mozilla:rhino:1.9.1"
 }
 
 processResources {
@@ -113,7 +109,22 @@ tasks.register('linkMod') {
 		def link = new File(modDir, "${baseName}.jar")
 
 		modDir.mkdirs()
-		java.nio.file.Files.deleteIfExists(link.toPath())
+		// Retry deleteIfExists up to 3 times with 500ms delay (handles locked jars)
+		def deleted = false
+		for (int attempt = 1; attempt <= 3; attempt++) {
+			try {
+				java.nio.file.Files.deleteIfExists(link.toPath())
+				deleted = true
+				break
+			} catch (Exception e) {
+				if (attempt < 3) {
+					println "[linkMod] Attempt $attempt to delete failed, retrying in 500ms..."
+					Thread.sleep(500)
+				} else {
+					println "[linkMod] Warning: could not delete existing file after 3 attempts"
+				}
+			}
+		}
 		link.bytes = jar.bytes
 		println "[linkMod] Copied: ${link} <- ${jar.name}"
 	}

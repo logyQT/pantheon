@@ -1,13 +1,22 @@
 package com.logy.pantheon.features.commands.roulette;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.utils.ChatUtils;
 import java.util.*;
 
 public class RouletteGame implements GameInstance {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("roulette", "Roulette", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("roulette", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("roulette", SettingDefinition.slider("max_bets_per_player", "Max Bets/Player", 1, 20, 1, 5));
+        ModuleRegistry.registerSetting("roulette", SettingDefinition.slider("betting_time_ms", "Betting Window (s)", 10000, 120000, 5000, 30000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("roulette");
     private boolean active = false;
     private final List<Bet> currentBets = new ArrayList<>();
     private long startTime = 0;
@@ -21,7 +30,7 @@ public class RouletteGame implements GameInstance {
         active = true;
         currentBets.clear();
         startTime = System.currentTimeMillis();
-        ChatUtils.sendPartyMessage("✔ ROULETTE STARTED! Place bets (" + (CONFIG.ROULETTE_BETTING_TIME_MS / 1000) + "s) using .bet <amount> <value>");
+        ChatUtils.sendPartyMessage("✔ ROULETTE STARTED! Place bets (" + (CONFIG.getInt("betting_time_ms") / 1000) + "s) using .bet <amount> <value>");
         ChatUtils.sendPartyMessage("Values: 0-36, 00, RED, BLACK, EVEN, ODD, 1st, C1, or numbers like 1,2,3");
     }
 
@@ -103,8 +112,8 @@ public class RouletteGame implements GameInstance {
 
         // Limit zakładów na gracza
         long playerBetCount = currentBets.stream().filter(b -> b.player.equalsIgnoreCase(sender)).count();
-        if (playerBetCount >= CONFIG.ROULETTE_MAX_BETS_PER_PLAYER) {
-            ChatUtils.sendPartyMessage(sender + ", max " + CONFIG.ROULETTE_MAX_BETS_PER_PLAYER + " bets allowed!");
+        if (playerBetCount >= CONFIG.getInt("max_bets_per_player")) {
+            ChatUtils.sendPartyMessage(sender + ", max " + CONFIG.getInt("max_bets_per_player") + " bets allowed!");
             return;
         }
 
@@ -174,7 +183,7 @@ public class RouletteGame implements GameInstance {
     }
 
     @Override public void update() {
-        if (active && System.currentTimeMillis() - startTime > CONFIG.ROULETTE_BETTING_TIME_MS) spin();
+        if (active && System.currentTimeMillis() - startTime > CONFIG.getInt("betting_time_ms")) spin();
     }
     @Override public void stop() { active = false; }
     @Override public boolean isActive() { return active; }

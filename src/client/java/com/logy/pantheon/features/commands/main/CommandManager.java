@@ -1,34 +1,27 @@
 package com.logy.pantheon.features.commands.main;
 
 
-import com.logy.pantheon.config.PantheonConfig;
-import com.logy.pantheon.features.commands.ascii.AsciiArt;
-import com.logy.pantheon.features.commands.hangman.WordLoader;
-import com.logy.pantheon.features.commands.wheelgame.WheelWordLoader;
-import com.logy.pantheon.features.commands.wordchain.WordChainLoader;
+import com.logy.pantheon.config.ModuleRegistry;
 import com.logy.pantheon.utils.ChatUtils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 
+import com.logy.pantheon.features.commands.CommandPantheon;
+import com.logy.pantheon.features.commands.scripting.ModuleInstance;
+
+
 import java.util.*;
 import java.util.function.Consumer;
-import org.reflections.Reflections;
 
 import static com.logy.pantheon.PantheonMod.LOGGER;
 
 public class CommandManager {
     private static final Map<String, ICommand> commands = new HashMap<>();
+    private static final Map<String, String> commandSources = new HashMap<>();
     private static final List<GameInstance> REGISTERED_GAMES = new ArrayList<>();
     public static final String TOKEN = "!";
 
     private static void registerAll() {
-        Reflections reflections = new Reflections("com.logy.pantheon.features.commands");
-        reflections.getTypesAnnotatedWith(AutoRegister.class).forEach(clazz -> {
-            try {
-                register((ICommand) clazz.getDeclaredConstructor().newInstance());
-            } catch (Exception e) {
-                LOGGER.error("[Pantheon] Failed to register command: " + clazz.getSimpleName(), e);
-            }
-        });
+        register(new CommandPantheon(), "built-in");
     }
 
     public static void registerGame(GameInstance game) {
@@ -37,6 +30,14 @@ public class CommandManager {
 
     public static List<String> getCommands() {
         return commands.keySet().stream()
+                .sorted()
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public static List<String> getEnabledCommands() {
+        return commands.keySet().stream()
+                .filter(key -> ModuleRegistry.isEnabled(
+                    commandSources.getOrDefault(key, "unknown")))
                 .sorted()
                 .collect(java.util.stream.Collectors.toList());
     }
@@ -54,21 +55,7 @@ public class CommandManager {
     }
 
     public static boolean isGameEnabled(String gameName) {
-        PantheonConfig c = PantheonConfig.get();
-        return switch (gameName.toLowerCase()) {
-            case "blackjack" -> c.BLACKJACK_ENABLED;
-            case "hangman" -> c.HANGMAN_ENABLED;
-            case "hack" -> c.HACK_ENABLED;
-            case "wordchain" -> c.WORDCHAIN_ENABLED;
-            case "roulette" -> c.ROULETTE_ENABLED;
-            case "whoami" -> c.WHOAMI_ENABLED;
-            case "math" -> c.MATH_ENABLED;
-            case "speedtype" -> c.SPEEDTYPE_ENABLED;
-            case "guess" -> c.GUESS_ENABLED;
-            case "rguess" -> c.RGUESS_ENABLED;
-            case "wheel" -> c.WHEEL_ENABLED;
-            default -> true;
-        };
+        return ModuleRegistry.isEnabled(gameName.toLowerCase());
     }
 
     public static <T> void tryStartGame(String gameName, T context, Consumer<T> gameStartLogic) {
@@ -101,24 +88,43 @@ public class CommandManager {
 
     public static void init(){
         registerAll();
-        AsciiArt.init();
-
-        WordLoader.loadWords();
-        WheelWordLoader.loadPhrases();
-        WordChainLoader.loadWords();
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            LOGGER.info("[Pantheon] Game stopped due to disconnect.");
-            CommandManager.getActiveGame().ifPresent(GameInstance::stop);
+            CommandManager.getActiveGame().ifPresent(game -> {
+                LOGGER.info("[Pantheon] Game stopped due to disconnect.");
+                if (game instanceof ModuleInstance mi) {
+                    mi.stopForDisconnect();
+                } else {
+                    game.stop();
+                }
+            });
         });
     }
 
     public static void register(ICommand cmd) {
-        commands.put(TOKEN + cmd.getName().toLowerCase(), cmd);
+        register(cmd, "unknown");
+    }
+
+    public static void register(ICommand cmd, String source) {
+        String key = TOKEN + cmd.getName().toLowerCase();
+        if (commands.containsKey(key)) {
+            String existingSource = commandSources.getOrDefault(key, "unknown");
+            if (!existingSource.equals(source)) {
+                throw new RuntimeException(
+                    "[Pantheon] FATAL: Command '" + key + "' already registered by '" + existingSource + "'. "
+                    + "Cannot also register from '" + source + "'. "
+                    + "Rename your command or folder to resolve this collision."
+                );
+            }
+        }
+        commands.put(key, cmd);
+        commandSources.put(key, source);
     }
 
     public static void unregister(String name) {
-        commands.remove(TOKEN + name.toLowerCase());
+        String key = TOKEN + name.toLowerCase();
+        commands.remove(key);
+        commandSources.remove(key);
     }
 
     public static void handle(String sender, String content) {

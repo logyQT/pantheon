@@ -1,6 +1,8 @@
 package com.logy.pantheon.features.commands.whoami;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
@@ -11,7 +13,18 @@ import java.util.Random;
 
 public class WhoAmIGame implements GameInstance {
 
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("whoami", "WhoAmI", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("whoami", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("whoami", SettingDefinition.slider("entry_cost", "Entry Cost", 1, 100, 1, 10));
+        ModuleRegistry.registerSetting("whoami", SettingDefinition.slider("payout_fast", "Fast Payout", 10, 200, 5, 60));
+        ModuleRegistry.registerSetting("whoami", SettingDefinition.slider("payout_mid", "Mid Payout", 10, 200, 5, 40));
+        ModuleRegistry.registerSetting("whoami", SettingDefinition.slider("payout_slow", "Slow Payout", 10, 200, 5, 20));
+        ModuleRegistry.registerSetting("whoami", SettingDefinition.slider("cooldown_ms", "Cooldown (m)", 60000, 600000, 60000, 120000));
+        ModuleRegistry.registerSetting("whoami", SettingDefinition.slider("hint_timeout_ms", "Hint Timeout (s)", 5000, 30000, 1000, 15000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("whoami");
 
     // ── Cooldown ─────────────────────────────────────────────
     private static long lastUsed = 0;
@@ -38,7 +51,7 @@ public class WhoAmIGame implements GameInstance {
     public void update() {
         if (!active) return;
 
-        if (System.currentTimeMillis() - stageStart >= CONFIG.WHOAMI_HINT_TIMEOUT_MS) {
+        if (System.currentTimeMillis() - stageStart >= CONFIG.getInt("hint_timeout_ms")) {
             advanceStage();
         }
     }
@@ -48,8 +61,8 @@ public class WhoAmIGame implements GameInstance {
         long now = System.currentTimeMillis();
         long elapsed = now - lastUsed;
 
-        if (elapsed < CONFIG.WHOAMI_COOLDOWN_MS) {
-            ChatUtils.sendPartyMessage("WhoAmI is on cooldown! (" + TimeUtils.formatDuration(CONFIG.WHOAMI_COOLDOWN_MS - elapsed) + " remaining)");
+        if (elapsed < CONFIG.getInt("cooldown_ms")) {
+            ChatUtils.sendPartyMessage("WhoAmI is on cooldown! (" + TimeUtils.formatDuration(CONFIG.getInt("cooldown_ms") - elapsed) + " remaining)");
             return false;
         }
 
@@ -59,9 +72,10 @@ public class WhoAmIGame implements GameInstance {
             return false;
         }
 
-        if (!Economy.takeMoney(sender, CONFIG.WHOAMI_ENTRY_COST)) {
+        int entryCost = CONFIG.getInt("entry_cost");
+        if (!Economy.takeMoney(sender, entryCost)) {
             ChatUtils.sendPartyMessage(
-                    sender + " can't afford to start! (costs " + CONFIG.WHOAMI_ENTRY_COST +
+                    sender + " can't afford to start! (costs " + entryCost +
                             " coins, balance: " + Economy.getCurrentBalance(sender) + ")"
             );
             return false;
@@ -73,7 +87,7 @@ public class WhoAmIGame implements GameInstance {
         stageStart = now;
         lastUsed   = now;
 
-        ChatUtils.sendPartyMessage("WhoAmI? started! (-" + CONFIG.WHOAMI_ENTRY_COST + " coins)");
+        ChatUtils.sendPartyMessage("WhoAmI? started! (-" + CONFIG.getInt("entry_cost") + " coins)");
         printStage();
         return true;
     }
@@ -134,9 +148,9 @@ public class WhoAmIGame implements GameInstance {
 
     private int payoutForStage() {
         return switch (stage) {
-            case 0, 1 -> CONFIG.WHOAMI_PAYOUT_FAST;
-            case 2    -> CONFIG.WHOAMI_PAYOUT_MID;
-            default   -> CONFIG.WHOAMI_PAYOUT_SLOW;
+            case 0, 1 -> CONFIG.getInt("payout_fast");
+            case 2    -> CONFIG.getInt("payout_mid");
+            default   -> CONFIG.getInt("payout_slow");
         };
     }
 }

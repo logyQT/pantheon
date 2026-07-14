@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pantheon Scripting Engine</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    line-height: 1.6;
+    padding: 40px 20px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  h1 { color: #58a6ff; font-size: 2em; margin-bottom: 8px; }
+  h2 { color: #58a6ff; font-size: 1.4em; margin-top: 36px; margin-bottom: 12px; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+  h3 { color: #c9d1d9; font-size: 1.1em; margin-top: 24px; margin-bottom: 8px; }
+  p, li { margin-bottom: 8px; }
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  a { color: #58a6ff; }
+  code:not([class]) {
+    background: #161b22;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #f0f6fc;
+  }
+  pre { margin: 12px 0 20px !important; border-radius: 8px !important; border: 1px solid #30363d !important; }
+  pre code { font-size: 0.9em !important; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  .badge-game { background: #1f6feb; color: #fff; }
+  .badge-command { background: #238636; color: #fff; }
+  .badge-chat { background: #8957e5; color: #fff; }
+  .badge-both { background: #8957e5; color: #fff; }
+  .subtitle { color: #8b949e; font-size: 1.1em; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; }
+  th, td { text-align: left; padding: 8px 12px; border: 1px solid #30363d; }
+  th { background: #161b22; color: #58a6ff; font-weight: 600; }
+  td { background: #0d1117; }
+  .section-desc { color: #8b949e; margin-bottom: 16px; }
+  .contract { background: #161b22; border-left: 3px solid #58a6ff; padding: 12px 16px; margin: 8px 0 16px; border-radius: 0 8px 8px 0; }
+  .contract strong { color: #58a6ff; }
+  .warn { background: #1b1a16; border-left: 3px solid #d29922; padding: 12px 16px; margin: 8px 0 16px; border-radius: 0 8px 8px 0; }
+  .warn strong { color: #d29922; }
+</style>
+</head>
+<body>
+
+<h1>Pantheon Scripting Engine</h1>
+<p class="subtitle">JavaScript-powered modules using Mozilla Rhino</p>
+
+<h2>Overview</h2>
+<p>
+  Pantheon's scripting engine lets you write party games, chat commands, and chat hooks
+  in pure JavaScript. Each module lives in its own folder under
+  <code>config/pantheon/scripts/</code> and is hot-reloaded on file change.
+</p>
+<p>
+  A module declares what it does by calling lifecycle methods on the <code>pantheon</code>
+  global. The engine reads these declarations after evaluation and automatically wires
+  up commands, game lifecycle hooks, and chat message handlers.
+</p>
+<p>
+  Modules can be toggled on/off via the clickgui. When disabled, their hooks are not
+  called — the script remains loaded but inactive.
+</p>
+
+<!-- ── Module Structure ── -->
+<h2>Module Structure</h2>
+
+<h3>Folder layout</h3>
+<p>Each subfolder under <code>config/pantheon/scripts/</code> is a module. The name of the folder becomes the module ID.</p>
+<pre><code class="language-plain">config/pantheon/scripts/
+├── number_guesser/
+│   └── module.js              ← entry point (required naming convention)
+├── ascii_pictures/
+│   ├── module.js
+│   └── picture-commands.json  ← module-local asset, read via readFile()
+├── wordchain/
+│   ├── module.js
+│   ├── wordlist.js            ← loaded via require('./wordlist')
+│   └── helpers.js
+└── lib/
+    └── utils.js               ← shared between modules via require('../lib/utils')
+</code></pre>
+
+<h3>Entry point</h3>
+<p><code>module.js</code> is evaluated last, after all other <code>.js</code> files in the folder. This means any functions or variables defined in sibling files are available in <code>module.js</code>.</p>
+
+<h3>require(path) — explicit imports</h3>
+<div class="contract">
+  <strong>Contract:</strong> Loads a sibling file and returns its <code>exports</code> object.
+  Path resolves relative to the module folder. Each module has its own require cache —
+  the same file required by different modules gets evaluated separately.<br>
+  <strong>How it works:</strong> The engine pre-creates an empty <code>exports</code> object
+  and injects it into the required file's scope. This follows CommonJS conventions but is
+  <strong>not</strong> Node.js — there is no <code>module</code> or <code>module.exports</code>.
+  Use property mutation (<code>exports.foo = ...</code>) to add values. Do <strong>not</strong>
+  reassign <code>exports</code> directly (<code>exports = { ... }</code>) — that breaks the
+  return value and your module will receive the original empty object.
+</div>
+<pre><code class="language-javascript">// helpers.js
+exports.pickRandom = function(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+};
+
+// module.js
+var helpers = require('./helpers');
+helpers.pickRandom([1, 2, 3]);
+</code></pre>
+
+<h3>readFile(path) — module-local file access</h3>
+<div class="contract">
+  <strong>Contract:</strong> Reads a file from within the scripts directory. Paths are relative
+  to the module folder. The path is normalized and checked against the scripts root —
+  any path that escapes <code>config/pantheon/scripts/</code> is blocked. This means
+  <code>../lib/utils.js</code> works, but <code>../../config.json</code> does not.
+</div>
+<pre><code class="language-javascript">// Reads config/pantheon/scripts/ascii_pictures/picture-commands.json
+var data = JSON.parse(pantheon.readFile("picture-commands.json"));
+
+// Reads config/pantheon/scripts/lib/utils.js (one level up)
+var util = JSON.parse(pantheon.readFile("../lib/utils.js"));
+
+// Blocked: would escape scripts root
+pantheon.readFile("../../config.json");  // returns null
+</code></pre>
+<div class="warn">
+  <strong>Warning:</strong> <code>readFile</code> is sandboxed to the scripts directory.
+  It cannot read files outside <code>config/pantheon/scripts/</code>.
+</div>
+
+<h3>Hot reload</h3>
+<p>The engine watches the scripts directory for file changes. When any <code>.js</code> file in a module folder changes, the entire module is reloaded — old hooks are cleaned up, the module is re-evaluated, and hooks are re-registered. No restart needed.</p>
+
+<!-- ── API Reference ── -->
+<h2>API Reference</h2>
+<p class="section-desc">All API methods live under the <code>pantheon</code> global. Each namespace is a public field on the ScriptApi Java object, exposed to JavaScript via Rhino's <code>Context.javaToJS()</code>.</p>
+
+<!-- ── Root ── -->
+<h3>Root Methods</h3>
+
+<div>
+<h4>pantheon.log(message)</h4>
+<div class="contract">
+  <strong>Why:</strong> Rhino's sandbox blocks <code>console.log</code> and <code>print</code>
+  (they're removed from the global scope). This is the only way to output debug info to the
+  Java console.<br>
+  <strong>Contract:</strong> Prefixes output with <code>[Script:moduleName]</code> for filtering.
+</div>
+<pre><code class="language-javascript">pantheon.log("Debug: " + someValue);
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.getUsername()</h4>
+<div class="contract">
+  <strong>Why:</strong> Scripts need to know which Minecraft player is running the mod.
+  The username is cached on first call.
+</div>
+<pre><code class="language-javascript">var whoAmI = pantheon.getUsername();
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.getTime()</h4>
+<div class="contract">
+  <strong>Why:</strong> System.currentTimeMillis() exposed as a convenience method.<br>
+  <strong>Contract:</strong> Returns the current system time in milliseconds. Equivalent
+  to <code>Date.now()</code>. Not cached — each call returns a fresh value.
+</div>
+<pre><code class="language-javascript">var startTime = pantheon.getTime();
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.readFile(path)</h4>
+<div class="contract">
+  <strong>Why:</strong> Modules need persistent config, word lists, or assets. Resolves relative
+  to the module folder. One level of <code>../</code> is allowed for shared lib folders.<br>
+  <strong>Contract:</strong> Returns <code>null</code> if the file doesn't exist, is unreadable,
+  or if the resolved path escapes the scripts directory. UTF-8 encoding.
+</div>
+<pre><code class="language-javascript">var config = JSON.parse(pantheon.readFile("config.json"));
+var shared = pantheon.readFile("../lib/common.json");
+</code></pre>
+</div>
+
+<!-- ── Chat ── -->
+<h3>Chat <span class="badge badge-both">all modules</span></h3>
+<p class="section-desc">Send messages and receive incoming chat. The sending side uses a queued message
+system to respect Hypixel's rate limits. The receiving side fires before command routing, so
+chat hooks see every message.</p>
+
+<div>
+<h4>pantheon.chat.party(message)</h4>
+<h4>pantheon.chat.guild(message)</h4>
+<h4>pantheon.chat.all(message)</h4>
+<div class="contract">
+  <strong>Why:</strong> Direct message sending bypasses Hypixel's rate limits and gets you
+  muted. These methods queue messages and send them with a configurable cooldown.
+  The queue handles retries on failed delivery.<br>
+  <strong>Contract:</strong> Messages 200 or more characters are silently dropped. The queue
+  processes one message at a time with a cooldown (configurable in the "General" settings panel).
+  Messages are prefixed with <code>pc </code>, <code>gc </code>, or <code>ac </code> for
+  Hypixel's channel system.
+</div>
+<pre><code class="language-javascript">pantheon.chat.party("Hello party!");   // Prefixed: "pc Hello party!"
+pantheon.chat.guild("Hello guild!");
+pantheon.chat.all("Hello world!");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.chat.command(cmd)</h4>
+<div class="contract">
+  <strong>Why:</strong> Minecraft commands like <code>/hub</code> need to go through the
+  player's connection, not chat. Also queued for rate limiting.<br>
+  <strong>Contract:</strong> No chat prefix is added. The command string is sent via
+  <code>player.connection.sendCommand()</code>. 200 or more characters is silently dropped.
+</div>
+<pre><code class="language-javascript">pantheon.chat.command("/hub");
+pantheon.chat.command("msg Notch hello");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.chat.feedback(message)</h4>
+<div class="contract">
+  <strong>Why:</strong> Send a message to the local player's chat that only they can see.
+  Unlike <code>party</code>, <code>guild</code>, or <code>all</code>, this is not queued
+  and does not go through the server — it is purely client-side feedback.<br>
+  <strong>Contract:</strong> The message is prefixed with <code>[Pantheon]</code> in gold.
+  No rate limits apply. The message is silently dropped if the player is not in-game
+  (e.g., at the title screen).
+</div>
+<pre><code class="language-javascript">pantheon.chat.feedback("Score: 5");
+pantheon.chat.feedback("Pictures reloaded (5 commands).");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.chat.onMessage(callback)</h4>
+<div class="contract">
+  <strong>Why:</strong> Modules need to react to chat without registering a game or command.
+  This fires for <strong>every</strong> chat message — party, guild, system, game messages —
+  before any command routing happens.<br>
+  <strong>Contract:</strong> The callback receives the raw message text. It fires before
+  <code>FunCommands.processMessage</code> and <code>Meow.handleChat</code>. Multiple
+  <code>onMessage</code> callbacks can be registered from the same module. This hook is
+  <strong>not</strong> scoped to an active game — it fires regardless.
+</div>
+<pre><code class="language-javascript">pantheon.chat.onMessage(function(rawText) {
+  // React to every incoming message
+  pantheon.log("Got: " + rawText);
+});
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.chat.onMessage(pattern, callback)</h4>
+<div class="contract">
+  <strong>Why:</strong> Pattern-matching the raw text is the most common use case (e.g., detecting
+  "meow"). This avoids writing the contains() check manually.<br>
+  <strong>Contract:</strong> Checks if <code>rawText.toLowerCase()</code> contains
+  <code>pattern.toLowerCase()</code>. Only fires when matched. The callback signature is the
+  same as the raw variant: <code>function(rawText)</code>.
+</div>
+<pre><code class="language-javascript">pantheon.chat.onMessage("meow", function(rawText) {
+  pantheon.log("Meow detected in: " + rawText);
+});
+</code></pre>
+</div>
+
+<!-- ── Economy ── -->
+<h3>Economy <span class="badge badge-both">all modules</span></h3>
+<p class="section-desc">Server-wide coin economy backed by SQLite. Shared across all modules
+and persists across restarts.</p>
+
+<div class="contract">
+  <strong>Why:</strong> Games need a reward system. The economy is the only way to give players
+  persistent currency that works across all modules.<br>
+  <strong>Contract:</strong> All operations are thread-safe (SQLite). Balances are integers.
+  The <code>take</code> method returns <code>true</code> if successful, <code>false</code> if
+  the player doesn't have enough coins (no negative balances).
+</div>
+<pre><code class="language-javascript">pantheon.economy.add("Notch", 100);
+var taken = pantheon.economy.take("Notch", 50);   // false if insufficient funds
+var bal = pantheon.economy.balance("Notch");       // 50
+var has = pantheon.economy.has("Notch", 30);       // true
+</code></pre>
+
+<!-- ── Settings ── -->
+<h3>Settings &amp; Metadata</h3>
+<p class="section-desc">Declare configurable values and metadata. Settings appear in the clickgui
+when you right-click a module. Values are auto-persisted to <code>config/pantheon/config.json</code>.</p>
+
+<div class="contract">
+  <strong>Why:</strong> Scripts need configurable behavior without editing code. The clickgui
+  provides a UI for users to tweak settings at runtime.<br>
+  <strong>Contract:</strong> Metadata calls (<code>setCategory</code>, <code>setDisplayName</code>)
+  must happen at the top of <code>module.js</code>. Setting declarations should also be at the
+  top — they're processed during script evaluation. Values are automatically saved to disk when
+  the game exits (<code>ClientLifecycles.CLIENT_STOPPING</code>).
+</div>
+
+<div>
+<h4>pantheon.settings.setCategory(category)</h4>
+<p>Defaults to <code>"Scripted Modules"</code> if not called.</p>
+<pre><code class="language-javascript">pantheon.settings.setCategory("Party Games");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.settings.setDisplayName(name)</h4>
+<p>Defaults to the folder name formatted as Title Case if not set.</p>
+<pre><code class="language-javascript">pantheon.settings.setDisplayName("Number Guesser");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.settings.addSlider(options)</h4>
+<p>Only <code>id</code> and <code>display</code> are required. Defaults:
+<code>min: 0</code>, <code>max: 100</code>, <code>step: 1</code>, <code>default: 0</code>.</p>
+<pre><code class="language-javascript">pantheon.settings.addSlider({
+    id: "reward",
+    display: "Reward",
+    default: 10,
+    min: 1,
+    max: 100,
+    step: 1
+});</code></pre>
+</div>
+
+<div>
+<h4>pantheon.settings.addToggle(options)</h4>
+<p><code>default</code> is <code>false</code> if omitted.</p>
+<pre><code class="language-javascript">pantheon.settings.addToggle({
+    id: "enabled",
+    display: "Enabled",
+    default: true
+});</code></pre>
+</div>
+
+<div>
+<h4>pantheon.settings.addText(options)</h4>
+<p><code>default</code> is <code>""</code> (empty string) if omitted.</p>
+<pre><code class="language-javascript">pantheon.settings.addText({
+    id: "prefix",
+    display: "Prefix",
+    default: "!"
+});</code></pre>
+</div>
+
+<div>
+<h4>pantheon.settings.get(id)</h4>
+<h4>pantheon.settings.getBool(id)</h4>
+<h4>pantheon.settings.getString(id)</h4>
+<h4>pantheon.settings.set(id, value)</h4>
+<div class="contract">
+  <strong>Why:</strong> Settings are typed — <code>get</code> returns int, <code>getBool</code>
+  returns boolean, <code>getString</code> returns string. Using the wrong getter for a setting
+  type returns the default value for that type (0, false, or "").<br>
+  <strong>Contract:</strong> <code>get/set</code> operate on the in-memory config cache.
+  Writes are not flushed to disk immediately — they're batched and saved on game exit.
+  If <code>get</code> is called for a setting that doesn't exist, it returns 0.
+</div>
+<pre><code class="language-javascript">var reward = pantheon.settings.get("reward");         // Returns int
+var enabled = pantheon.settings.getBool("enabled");    // Returns boolean
+var prefix = pantheon.settings.getString("prefix");    // Returns string
+pantheon.settings.set("reward", 50);                  // Update at runtime
+</code></pre>
+</div>
+
+<!-- ── Dynamic Commands ── -->
+<h3>Dynamic Commands <span class="badge badge-command">commands</span></h3>
+<p class="section-desc">Register additional commands at runtime beyond the module's own
+<code>pantheon.command.onCommand</code> hook. These are useful for data-driven modules like
+ASCII Pictures where each picture gets its own <code>!name</code> command.</p>
+
+<div>
+<h4>pantheon.commands.register(name, callback)</h4>
+<div class="contract">
+  <strong>Contract:</strong> The callback receives <code>(sender, args)</code> where
+  <code>args</code> is a Java String array. The command is registered with a <code>!</code>
+  prefix. Dynamic commands are automatically cleaned up when the module is reloaded.
+</div>
+<pre><code class="language-javascript">pantheon.commands.register("hello", function(sender, args) {
+    pantheon.chat.party("Hello, " + sender + "!");
+});
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.commands.unregister(name)</h4>
+<pre><code class="language-javascript">pantheon.commands.unregister("hello");
+</code></pre>
+</div>
+
+<!-- ── GUI ── -->
+<h3>Clickgui Buttons</h3>
+<p class="section-desc">Add interactive buttons to the module's clickgui panel.</p>
+
+<div>
+<h4>pantheon.gui.register(id, name, callback)</h4>
+<div class="contract">
+  <strong>Why:</strong> Some actions (like "Open Folder" or "Refresh") don't belong in a chat
+  command. Buttons in the clickgui are the natural trigger point.<br>
+  <strong>Contract:</strong> The <code>id</code> must be unique within the module. The callback
+  takes no arguments. Buttons are registered in <code>ModuleRegistry</code> and rendered by
+  the clickgui. They persist until the module is reloaded or <code>unregister</code> is called.
+</div>
+<pre><code class="language-javascript">pantheon.gui.register("open_folder", "Open Folder", function() {
+    pantheon.gui.openFolder();
+});
+pantheon.gui.register("refresh", "Refresh", function() {
+    refreshStuff();
+});
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.gui.unregister(id)</h4>
+<pre><code class="language-javascript">pantheon.gui.unregister("open_folder");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.gui.openFolder()</h4>
+<pre><code class="language-javascript">pantheon.gui.openFolder();
+</code></pre>
+</div>
+
+<!-- ── Timers ── -->
+<h3>Timers</h3>
+<p class="section-desc">Schedule delayed callbacks. Fires on the client tick thread.</p>
+
+<div>
+<h4>pantheon.timers.after(delayMs, callback)</h4>
+<h4>pantheon.timers.cancel(timerId)</h4>
+<div class="contract">
+  <strong>Why:</strong> Games need timeouts (e.g., "answer within 15 seconds"). Rhino doesn't
+  have <code>setTimeout</code>, so this provides the same pattern.<br>
+  <strong>Contract:</strong> <code>after</code> takes <code>(ms, callback)</code> — ms first,
+  NOT callback first like setTimeout. The callback takes no arguments. Returns a timer ID
+  (integer) that can be used to cancel. Timers are automatically cleaned up when the module is
+  reloaded or <code>cleanup()</code> is called, but you should still cancel them in
+  <code>onStop</code> to be safe.
+</div>
+<pre><code class="language-javascript">var timerId = pantheon.timers.after(10000, function() {
+    pantheon.chat.party("Time's up!");
+    pantheon.game.stop();
+});
+
+pantheon.timers.cancel(timerId);
+</code></pre>
+</div>
+
+<!-- ── Audio ── -->
+<h3>Audio <span class="badge badge-both">all modules</span></h3>
+<p class="section-desc">Play sounds from the player's position. Currently supports Minecraft
+vanilla sounds only — custom file-based sounds are deferred for a future release.</p>
+
+<div>
+<h4>pantheon.audio.playSound(options)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Plays a Minecraft sound at the player's position.
+  <code>sound</code> is a Minecraft resource location string (e.g.,
+  <code>"minecraft:entity.cat.ambient"</code>). <code>volume</code> and <code>pitch</code>
+  are optional, defaulting to <code>1.0</code>. Silently does nothing if the sound name
+  is invalid or if the player is not in a world.
+</div>
+<pre><code class="language-javascript">pantheon.audio.playSound({ sound: "minecraft:entity.cat.ambient" });
+pantheon.audio.playSound({ sound: "minecraft:block.note_block.pling", volume: 0.5, pitch: 1.5 });
+</code></pre>
+</div>
+
+<!-- ── Game Lifecycle ── -->
+<h3>Game Lifecycle <span class="badge badge-game">games</span></h3>
+<p class="section-desc">Register lifecycle callbacks for modules that run as a game. Games are
+stateful — only one game can be active at a time. The engine handles concurrency: if a game is
+already running, <code>!gamename</code> shows an error instead of starting a new one.</p>
+
+<div>
+<h4>pantheon.game.stop()</h4>
+<div class="contract">
+  <strong>Why:</strong> Games are stateful — they hold a "game slot" that prevents other games from
+  starting. <code>stop()</code> releases that slot, cleans up timers, and calls <code>onStop</code>.<br>
+  <strong>Contract:</strong> No-op if no game is active. Only meaningful inside a game module
+  (one that registered <code>pantheon.game.onStart</code>). Calling from a command does nothing.
+</div>
+<pre><code class="language-javascript">pantheon.game.stop();  // Ends the current game immediately
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.game.onStart(callback)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Called when the game starts via <code>!modulename</code>.
+  The callback receives the starter's username. The game is marked as "active" before
+  <code>onStart</code> is called, so <code>onTick</code> and <code>onChat</code> will fire
+  immediately.<br>
+  <strong>Auto-command:</strong> The engine automatically registers <code>!&lt;folder_name&gt;</code>
+  to start the game. You do <strong>not</strong> need to call <code>pantheon.command.name()</code>
+  for the game-start command — it exists even if you never set a command name. If you do set
+  <code>pantheon.command.name()</code>, the <code>!&lt;folder_name&gt;</code> game-start command
+  and the <code>!&lt;custom_name&gt;</code> command handler coexist independently. Both
+  <code>onStart</code> and <code>onCommand</code> can be used in the same module.<br>
+  <strong>Why:</strong> Without <code>onStart</code>, the module doesn't appear as a playable
+  game in the command system. It's the signal that says "this module is a game."
+</div>
+<pre><code class="language-javascript">pantheon.game.onStart(function(sender) {
+    pantheon.chat.party("Game started by " + sender + "!");
+});
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.game.onStop(callback)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Receives a reason string: <code>"MANUAL"</code> (game ended
+  via <code>pantheon.game.stop()</code>), <code>"RELOAD"</code> (module is being hot-reloaded
+  while running), <code>"DISCONNECT"</code> (player left the server), or <code>"DISABLED"</code>
+  (module was toggled off in the clickgui while the game was running). Always clean up timers
+  here — if you don't, they'll fire after the game is over.
+</div>
+<pre><code class="language-javascript">pantheon.game.onStop(function(reason) {
+    if (timeoutId >= 0) pantheon.timers.cancel(timeoutId);
+});
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.game.onChat(callback)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Called for each party chat message while the game is active.
+  Receives <code>(sender, message)</code>. The message is the text after the <code>:</code>
+  in <code>"Party > PlayerName: message"</code>.<br>
+  <strong>Note:</strong> This is <strong>different</strong> from <code>pantheon.chat.onMessage</code>.
+  <code>game.onChat</code> only fires during an active game, and only for party chat messages.
+  <code>chat.onMessage</code> fires for all messages regardless of game state.
+</div>
+<pre><code class="language-javascript">pantheon.game.onChat(function(sender, message) {
+    var guess = parseInt(message);
+    if (!isNaN(guess)) checkGuess(sender, guess);
+});
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.game.onTick(callback)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Called every client tick while the game is active. A client tick
+  runs roughly 20 times per second. Use this for countdowns, movement checks, etc.
+</div>
+<pre><code class="language-javascript">pantheon.game.onTick(function() {
+    // Check elapsed time, update game state, etc.
+});
+</code></pre>
+</div>
+
+<!-- ── Command Lifecycle ── -->
+<h3>Command Metadata &amp; Lifecycle <span class="badge badge-command">commands</span></h3>
+<p class="section-desc">Register a chat command that users invoke with <code>!name</code>.
+Unlike dynamic commands (<code>pantheon.commands.register</code>), this is the module's primary
+command — only one per module.</p>
+
+<div>
+<h4>pantheon.command.name(name)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Sets the command name. This is what users type after <code>!</code>.
+  <strong>If not set, the primary command (<code>onCommand</code>) is not registered.</strong>
+  Must be called during script evaluation.
+</div>
+<pre><code class="language-javascript">pantheon.command.name("pictures");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.command.description(desc)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Optional. Sets the description shown in the clickgui.
+  If not set, no description is shown.
+</div>
+<pre><code class="language-javascript">pantheon.command.description("ASCII picture commands.");
+</code></pre>
+</div>
+
+<div>
+<h4>pantheon.command.onCommand(callback)</h4>
+<div class="contract">
+  <strong>Contract:</strong> Receives <code>(sender, args)</code> where <code>args</code> is a
+  Java String array. The command is invoked when a user types <code>!commandname arg1 arg2</code>.<br>
+  <strong>Important:</strong> You must also call <code>pantheon.command.name()</code> for the
+  command to be registered. If you set <code>onCommand</code> without setting a name, the
+  command is silently skipped.<br>
+  <strong>Why:</strong> Having <code>onCommand</code> as a separate lifecycle hook instead of
+  a <code>pantheon.commands.register</code> call makes it clear which command is the module's
+  primary entry point. It also gets cleaned up automatically on reload.
+</div>
+<pre><code class="language-javascript">pantheon.command.onCommand(function(sender, args) {
+    if (args.length === 0) {
+        pantheon.chat.party("Usage: !hello &lt;name&gt;");
+    } else {
+        pantheon.chat.party("Hello, " + args[0] + "!");
+    }
+});
+</code></pre>
+</div>
+
+<!-- ── Complete Examples ── -->
+<h2>Complete Examples</h2>
+
+<h3>number_guesser/module.js — Game module</h3>
+<p>Demonstrates: settings, economy, timers, self-stop, chat input, state machine.</p>
+<pre><code class="language-javascript">pantheon.settings.setCategory("Party Games");
+pantheon.settings.setDisplayName("Number Guesser");
+
+pantheon.settings.addSlider({ id: "reward", display: "Reward", default: 10, min: 1, max: 100, step: 1 });
+pantheon.settings.addSlider({ id: "timeout_ms", display: "Timeout (ms)", default: 15000, min: 5000, max: 60000, step: 1000 });
+pantheon.settings.addSlider({ id: "max_number", display: "Max Number", default: 20, min: 5, max: 100, step: 1 });
+
+var target = 0;
+var hints = 0;
+var timeoutId = -1;
+
+pantheon.game.onStart(function(sender) {
+    target = Math.floor(Math.random() * pantheon.settings.get("max_number")) + 1;
+    hints = 0;
+    pantheon.chat.party("I'm thinking of 1-" + pantheon.settings.get("max_number") + ". " + sender + " guesses first.");
+    timeoutId = pantheon.timers.after(pantheon.settings.get("timeout_ms"), function() {
+        pantheon.chat.party("Time's up! The number was " + target + ".");
+        pantheon.game.stop();
+    });
+});
+
+pantheon.game.onChat(function(sender, message) {
+    var guess = parseInt(message);
+    if (isNaN(guess)) return;
+    hints++;
+    if (guess < target) {
+        pantheon.chat.party("Higher!");
+    } else if (guess > target) {
+        pantheon.chat.party("Lower!");
+    } else {
+        if (timeoutId >= 0) pantheon.timers.cancel(timeoutId);
+        var reward = pantheon.settings.get("reward");
+        pantheon.economy.add(sender, reward);
+        pantheon.chat.party(sender + " got it in " + hints + " tries! (+" + reward + " coins)");
+        pantheon.game.stop();
+    }
+});
+
+pantheon.game.onStop(function(reason) {
+    if (timeoutId >= 0) {
+        pantheon.timers.cancel(timeoutId);
+        timeoutId = -1;
+    }
+});
+</code></pre>
+
+<h3>ascii_pictures/module.js — Command module</h3>
+<p>Demonstrates: file I/O, JSON parsing, dynamic command registration, clickgui buttons, refresh pattern.</p>
+<pre><code class="language-javascript">pantheon.settings.setCategory("ASCII Pics");
+pantheon.settings.setDisplayName("ASCII Pictures");
+pantheon.settings.addToggle({ id: "enabled", display: "Enabled", default: true });
+
+pantheon.command.name("pictures");
+pantheon.command.description("ASCII picture commands. Loads from picture-commands.json.");
+
+pantheon.gui.register("open_folder", "Open Folder", function() {
+    pantheon.gui.openFolder();
+});
+pantheon.gui.register("refresh", "Refresh", function() {
+    refreshPictures();
+});
+
+var pictures = {};
+
+function loadPictures() {
+    pictures = {};
+    var content = pantheon.readFile("picture-commands.json");
+    if (!content) return;
+    try {
+        var data = JSON.parse(content);
+        if (data && data.pictures) {
+            for (var i = 0; i < data.pictures.length; i++) {
+                var p = data.pictures[i];
+                if (p.name && p.picture) {
+                    pictures[p.name] = p.picture;
+                }
+            }
+        }
+    } catch (e) {
+        pantheon.log("Failed to parse: " + e);
+    }
+}
+
+function registerPictureCommands() {
+    var names = Object.keys(pictures);
+    for (var i = 0; i < names.length; i++) {
+        var name = names[i];
+        var picLines = pictures[name].split("\n");
+        (function(lines) {
+            pantheon.commands.register(name, function(sender, args) {
+                for (var j = 0; j < lines.length; j++) {
+                    pantheon.chat.party(lines[j]);
+                }
+            });
+        })(picLines);
+    }
+}
+
+function unregisterPictureCommands() {
+    var names = Object.keys(pictures);
+    for (var i = 0; i < names.length; i++) {
+        pantheon.commands.unregister(names[i]);
+    }
+}
+
+function refreshPictures() {
+    unregisterPictureCommands();
+    loadPictures();
+    registerPictureCommands();
+    pantheon.chat.party("Pictures reloaded (" + Object.keys(pictures).length + " commands).");
+}
+
+loadPictures();
+registerPictureCommands();
+
+pantheon.command.onCommand(function(sender, args) {
+    if (args.length > 0 && args[0] === "refresh") {
+        refreshPictures();
+    } else {
+        var names = Object.keys(pictures);
+        if (names.length === 0) {
+            pantheon.chat.party("No pictures loaded.");
+        } else {
+            pantheon.chat.party("Available: " + names.join(", "));
+        }
+    }
+});
+</code></pre>
+
+<h3>meow/module.js — Chat hook module</h3>
+<p>Demonstrates: global chat hook with pattern matching, no game or command needed.</p>
+<pre><code class="language-javascript">pantheon.settings.setCategory("Chat Hooks");
+pantheon.settings.setDisplayName("Meow Sound");
+pantheon.settings.addToggle({ id: "enabled", display: "Enabled", default: true });
+
+pantheon.chat.onMessage("meow", function(rawText) {
+    pantheon.log("Meow detected in: " + rawText);
+});
+</code></pre>
+
+<h2>Best Practices</h2>
+<ul>
+  <li><strong>Declare metadata first</strong> — Call <code>pantheon.settings.setCategory()</code> and <code>pantheon.settings.setDisplayName()</code> at the top of <code>module.js</code>, before any other API calls. These are read by the engine after evaluation.</li>
+  <li><strong>Settings are auto-persisted</strong> — Any <code>pantheon.settings.addSlider/addToggle/addText</code> you declare gets automatically saved to <code>config/pantheon/config.json</code> on game exit. If you don't add an "enabled" toggle, one is added for you.</li>
+  <li><strong>Always call <code>pantheon.game.stop()</code> when a game ends</strong> — This releases the game slot, cleans up timers, and calls <code>onStop</code>. Without it, the game slot stays occupied and no other game can start.</li>
+  <li><strong>Clean up timers in <code>onStop</code></strong> — Timers are automatically cleaned up on module reload, but during normal game flow you should cancel them in <code>onStop</code> to prevent stale callbacks.</li>
+  <li><strong>Use <code>chat.onMessage</code> for global hooks, <code>game.onChat</code> for game-specific input</strong> — <code>chat.onMessage</code> fires for every message regardless of game state. <code>game.onChat</code> only fires during an active game, and only for party chat.</li>
+  <li><strong>Use <code>require()</code> for sharing code</strong> — Put shared utilities in a <code>lib/</code> folder at the scripts root, then use <code>require('../lib/util')</code> from any module.</li>
+  <li><strong>Use <code>require()</code> for splitting large modules</strong> — Any <code>.js</code> file in the module folder is evaluated before <code>module.js</code>, but using explicit <code>require()</code> for imports makes dependencies visible.</li>
+  <li><strong>Don't rely on <code>console.log</code> or <code>print</code></strong> — These globals are removed from the sandbox. Use <code>pantheon.log()</code> instead.</li>
+  <li><strong>Settings values are typed</strong> — Use <code>get()</code> for integers, <code>getBool()</code> for booleans, <code>getString()</code> for strings. Using the wrong getter returns the type's default (0, false, or "").</li>
+  <li><strong>Hot reload is per-module</strong> — Changing any <code>.js</code> file in a module folder reloads the entire module, not just that file. All state is lost on reload.</li>
+</ul>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+</body>
+</html>

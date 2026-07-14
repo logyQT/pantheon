@@ -2,7 +2,9 @@ package com.logy.pantheon.features.commands.guessgame;
 
 import java.util.Random;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
@@ -10,7 +12,20 @@ import com.logy.pantheon.utils.NumberUtils;
 import com.logy.pantheon.utils.TimeUtils;
 
 public class GuessingGame implements GameInstance {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("guess", "Guessing Game", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("guess", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("entry_cost", "Entry Cost", 1, 100, 1, 10));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("payout_3", "Payout <=3 tries", 10, 200, 5, 100));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("payout_6", "Payout <=6 tries", 10, 200, 5, 60));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("payout_10", "Payout <=10 tries", 10, 200, 5, 40));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("speed_bonus_10s", "Speed Bonus <10s", 0, 50, 5, 30));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("speed_bonus_20s", "Speed Bonus <20s", 0, 50, 5, 15));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("cooldown_ms", "Cooldown (m)", 60000, 600000, 60000, 120000));
+        ModuleRegistry.registerSetting("guess", SettingDefinition.slider("timeout_ms", "Timeout (s)", 5000, 60000, 1000, 10000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("guess");
     private boolean active = false;
     private int targetNumber = 0;
     private int attempts = 0;
@@ -22,14 +37,14 @@ public class GuessingGame implements GameInstance {
     private static long lastUsed = 0;
 
     private int calculatePayout(int attempts, long elapsedMs) {
-        int payout = CONFIG.GUESS_PAYOUT_10;
+        int payout = CONFIG.getInt("payout_10");
 
-        if (attempts <= 3) payout = CONFIG.GUESS_PAYOUT_3;
-        else if (attempts <= 6) payout = CONFIG.GUESS_PAYOUT_6;
+        if (attempts <= 3) payout = CONFIG.getInt("payout_3");
+        else if (attempts <= 6) payout = CONFIG.getInt("payout_6");
 
         long seconds = elapsedMs / 1000;
-        if (seconds < 10) payout += CONFIG.GUESS_SPEED_BONUS_10S;
-        else if (seconds < 20) payout += CONFIG.GUESS_SPEED_BONUS_20S;
+        if (seconds < 10) payout += CONFIG.getInt("speed_bonus_10s");
+        else if (seconds < 20) payout += CONFIG.getInt("speed_bonus_20s");
 
         return payout;
     }
@@ -51,14 +66,15 @@ public class GuessingGame implements GameInstance {
     public void start(String sender) {
         long now = System.currentTimeMillis();
         long elapsed = now - lastUsed;
-        if (elapsed < CONFIG.GUESS_COOLDOWN_MS) {
-            ChatUtils.sendPartyMessage("Guessing game is on cooldown! Wait " + TimeUtils.formatDuration(CONFIG.GUESS_COOLDOWN_MS - elapsed));
+        if (elapsed < CONFIG.getInt("cooldown_ms")) {
+            ChatUtils.sendPartyMessage("Guessing game is on cooldown! Wait " + TimeUtils.formatDuration(CONFIG.getInt("cooldown_ms") - elapsed));
             return;
         }
 
-        if (!Economy.takeMoney(sender, CONFIG.GUESS_ENTRY_COST)) {
+        int entryCost = CONFIG.getInt("entry_cost");
+        if (!Economy.takeMoney(sender, entryCost)) {
             ChatUtils.sendPartyMessage(
-                    sender + " can't afford to start the game! (costs " + CONFIG.GUESS_ENTRY_COST + " coins, balance: " + Economy.getCurrentBalance(sender) + ")"
+                    sender + " can't afford to start the game! (costs " + entryCost + " coins, balance: " + Economy.getCurrentBalance(sender) + ")"
             );
             return;
         }
@@ -72,7 +88,7 @@ public class GuessingGame implements GameInstance {
 
         lastUsed = now;
         ChatUtils.sendPartyMessage(
-                sender + " started a guessing game! (-" + CONFIG.GUESS_ENTRY_COST + " coins) | Pick a number (1-100). Winner gets at least " + CONFIG.GUESS_PAYOUT_10 + " coins!"
+                sender + " started a guessing game! (-" + CONFIG.getInt("entry_cost") + " coins) | Pick a number (1-100). Winner gets at least " + CONFIG.getInt("payout_10") + " coins!"
         );
     }
 
@@ -88,7 +104,7 @@ public class GuessingGame implements GameInstance {
     @Override public void update() {
         if (!active) return;
 
-        if (System.currentTimeMillis() - lastActivity > CONFIG.GUESS_TIMEOUT_MS) {
+        if (System.currentTimeMillis() - lastActivity > CONFIG.getInt("timeout_ms")) {
             ChatUtils.sendPartyMessage("Guessing game was canceled due to inactivity!");
             stop();
         }

@@ -1,13 +1,23 @@
 package com.logy.pantheon.features.commands.speedtyping;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.features.commands.hangman.WordLoader;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.utils.ChatUtils;
 
 public class SpeedTypingGame implements GameInstance {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("speedtype", "Speed Typing", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("speedtype", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("speedtype", SettingDefinition.slider("reward", "Reward", 1, 100, 1, 10));
+        ModuleRegistry.registerSetting("speedtype", SettingDefinition.slider("cooldown_ms", "Cooldown (m)", 10000, 600000, 60000, 60000));
+        ModuleRegistry.registerSetting("speedtype", SettingDefinition.slider("timeout_ms", "Timeout (s)", 5000, 60000, 1000, 10000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("speedtype");
     private boolean active = false;
     private String targetWord = "";
     private long startTime = 0;
@@ -36,7 +46,7 @@ public class SpeedTypingGame implements GameInstance {
     public void update() {
         if (!active) return;
 
-        if (System.currentTimeMillis() - startTime > CONFIG.SPEEDTYPE_TIMEOUT_MS) {
+        if (System.currentTimeMillis() - startTime > CONFIG.getInt("timeout_ms")) {
             ChatUtils.sendPartyMessage("Typing game timed out! Nobody was fast enough.");
             setGlobalCooldown();
             stop();
@@ -52,16 +62,17 @@ public class SpeedTypingGame implements GameInstance {
         long timeTakenMs = System.currentTimeMillis() - startTime;
         double seconds = timeTakenMs / 1000.0;
 
-        ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + CONFIG.SPEEDTYPE_REWARD + " coins for typing it in " + String.format("%.2fs", seconds) + "!");
+        int reward = CONFIG.getInt("reward");
+        ChatUtils.sendPartyMessage("GG! Rewarded " + sender + " " + reward + " coins for typing it in " + String.format("%.2fs", seconds) + "!");
 
-        Economy.addMoney(sender, CONFIG.SPEEDTYPE_REWARD);
+        Economy.addMoney(sender, reward);
 
         setGlobalCooldown();
         stop();
     }
 
     private void setGlobalCooldown() {
-        globalCooldown = System.currentTimeMillis() + CONFIG.SPEEDTYPE_COOLDOWN_MS;
+        globalCooldown = System.currentTimeMillis() + CONFIG.getInt("cooldown_ms");
     }
 
     @Override

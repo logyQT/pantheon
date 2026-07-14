@@ -1,11 +1,9 @@
 package com.logy.pantheon.features.commands;
 
-import com.logy.pantheon.features.commands.main.AutoRegister;
 import com.logy.pantheon.features.commands.main.BaseCommand;
 import com.logy.pantheon.utils.InventoryUtils;
 import static com.logy.pantheon.PantheonMod.LOGGER;
 
-@AutoRegister
 public class CommandTest extends BaseCommand {
 
     @Override

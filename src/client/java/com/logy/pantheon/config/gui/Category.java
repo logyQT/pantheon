@@ -32,6 +32,10 @@ public class Category {
         return this;
     }
 
+    public boolean isEmpty() {
+        return modules.isEmpty();
+    }
+
     private float contentHeight() {
         float h = HEADER_HEIGHT;
         for (Module m : modules) h += m.getHeight();

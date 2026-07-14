@@ -1,6 +1,8 @@
 package com.logy.pantheon.features.commands.hackgame;
 
-import com.logy.pantheon.config.PantheonConfig;
+import com.logy.pantheon.config.ModuleConfig;
+import com.logy.pantheon.config.ModuleRegistry;
+import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.main.GameInstance;
 import com.logy.pantheon.features.commands.economy.Economy;
 import com.logy.pantheon.utils.ChatUtils;
@@ -11,7 +13,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class HackGame implements GameInstance {
-    private static final PantheonConfig CONFIG = PantheonConfig.get();
+    public static void register() {
+        ModuleRegistry.registerModule("hack", "Hack Game", "Party Games", "java", true);
+        ModuleRegistry.registerSetting("hack", SettingDefinition.bool("enabled", "Enabled", true));
+        ModuleRegistry.registerSetting("hack", SettingDefinition.slider("max_attempts", "Max Attempts", 1, 10, 1, 3));
+        ModuleRegistry.registerSetting("hack", SettingDefinition.slider("reward", "Reward", 10, 1000, 10, 100));
+        ModuleRegistry.registerSetting("hack", SettingDefinition.slider("timeout_ms", "Timeout (s)", 5000, 60000, 1000, 18000));
+        ModuleRegistry.registerSetting("hack", SettingDefinition.slider("cooldown_ms", "Cooldown (m)", 60000, 1800000, 60000, 600000));
+    }
+
+    private static final ModuleConfig CONFIG = ModuleConfig.get("hack");
     private boolean active = false;
     private String password = "";
     private String controlSum = "";
@@ -45,7 +56,7 @@ public class HackGame implements GameInstance {
 
         ChatUtils.sendPartyMessage("HACK INITIALIZED! Decrypt the password.");
         ChatUtils.sendPartyMessage("Password: _ _ | Control sum: " + controlSum);
-        ChatUtils.sendPartyMessage("Time: " + (CONFIG.HACK_TIMEOUT_MS / 1000) + "s | Attempts: " + CONFIG.HACK_MAX_ATTEMPTS + " | Format: X Y");
+        ChatUtils.sendPartyMessage("Time: " + (CONFIG.getInt("timeout_ms") / 1000) + "s | Attempts: " + CONFIG.getInt("max_attempts") + " | Format: X Y");
     }
 
     private static @NotNull String getRemaining(long now) {
@@ -78,24 +89,24 @@ public class HackGame implements GameInstance {
         if (!guess.matches("\\d\\s\\d"))  return;
 
         int attempts = playerAttempts.getOrDefault(sender, 0) + 1;
-        if (attempts > CONFIG.HACK_MAX_ATTEMPTS) return;
+        if (attempts > CONFIG.getInt("max_attempts")) return;
         playerAttempts.put(sender, attempts);
 
         if (guess.equals(password)) {
-            ChatUtils.sendPartyMessage("✔ ACCESS GRANTED! " + sender + " decrypted " + password + " | Reward: " + CONFIG.HACK_REWARD + " coins");
-            Economy.addMoney(sender, CONFIG.HACK_REWARD);
+            ChatUtils.sendPartyMessage("✔ ACCESS GRANTED! " + sender + " decrypted " + password + " | Reward: " + CONFIG.getInt("reward") + " coins");
+            Economy.addMoney(sender, CONFIG.getInt("reward"));
             setGlobalCooldown();
             stop();
         } else {
-            if (attempts == CONFIG.HACK_MAX_ATTEMPTS) {
-                ChatUtils.sendPartyMessage(sender + " failed " + CONFIG.HACK_MAX_ATTEMPTS + " attempts!");
+            if (attempts == CONFIG.getInt("max_attempts")) {
+                ChatUtils.sendPartyMessage(sender + " failed " + CONFIG.getInt("max_attempts") + " attempts!");
             }
         }
     }
 
     @Override
     public void update() {
-        if (active && System.currentTimeMillis() - startTime > CONFIG.HACK_TIMEOUT_MS) {
+        if (active && System.currentTimeMillis() - startTime > CONFIG.getInt("timeout_ms")) {
             ChatUtils.sendPartyMessage("HACK FAILED! Connection timed out. The password was: " + password);
             setGlobalCooldown();
             stop();
@@ -103,7 +114,7 @@ public class HackGame implements GameInstance {
     }
 
     private void setGlobalCooldown() {
-        globalCooldown = System.currentTimeMillis() + CONFIG.HACK_COOLDOWN_MS;
+        globalCooldown = System.currentTimeMillis() + CONFIG.getInt("cooldown_ms");
     }
 
     @Override public boolean isActive() { return active; }

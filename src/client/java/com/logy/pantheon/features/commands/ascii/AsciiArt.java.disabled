@@ -1,9 +1,12 @@
 package com.logy.pantheon.features.commands.ascii;
 
+import com.logy.pantheon.config.ModuleRegistry;
 import com.logy.pantheon.features.commands.main.CommandManager;
 import com.logy.pantheon.features.commands.main.ICommand;
 import com.logy.pantheon.utils.ChatUtils;
+import net.fabricmc.loader.api.FabricLoader;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -13,6 +16,20 @@ public class AsciiArt {
 
     private static final Map<String, String[]> ARTS = new LinkedHashMap<>();
     private static final Set<String> registeredNames = new HashSet<>();
+
+    public static void register() {
+        ModuleRegistry.registerModule("picture_commands", "Picture Commands", "ASCII Pics", "java", false);
+        ModuleRegistry.registerButton("picture_commands", "open_folder", "Open Folder", () -> {
+            File dir = FabricLoader.getInstance().getConfigDir().resolve("pantheon").toFile();
+            dir.mkdirs();
+            try {
+                Runtime.getRuntime().exec(new String[]{"cmd", "/c", "explorer", dir.getAbsolutePath()});
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        ModuleRegistry.registerButton("picture_commands", "refresh", "Refresh", AsciiArt::refresh);
+    }
 
     public static void init() {
         ARTS.clear();
