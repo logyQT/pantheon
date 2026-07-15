@@ -1,110 +1,122 @@
-pantheon.settings.setCategory("Economy");
-pantheon.settings.setDisplayName("Economy");
-pantheon.settings.addSlider({ id: "default_balance", display: "Default Balance", default: 100, min: 0, max: 10000, step: 10 });
+settings.category("Economy");
+settings.displayName("Economy");
+settings.slider({ id: "default_balance", default: 100, min: 0, max: 10000, step: 10 });
 
-pantheon.command.name("economy");
-pantheon.command.description("Coin economy commands.");
+gui.slider({ id: "default_balance", display: "Default Balance" });
 
-var admins = [];
+const admins = [];
 
 function loadAdmins() {
-    admins = [];
-    var content = pantheon.readFile("admins.json");
+    admins.length = 0;
+    const content = core.readFile("admins.json");
     if (!content) return;
     try {
-        var data = JSON.parse(content);
+        const data = JSON.parse(content);
         if (Array.isArray(data)) {
-            for (var i = 0; i < data.length; i++) {
-                admins.push(data[i].toLowerCase());
+            for (const entry of data) {
+                admins.push(entry.toLowerCase());
             }
         }
     } catch (e) {
-        pantheon.log("Failed to parse admins.json: " + e);
+        console.log(`Failed to parse admins.json: ${e}`);
     }
 }
 
 function isAdmin(player) {
-    var lower = player.toLowerCase();
-    for (var i = 0; i < admins.length; i++) {
-        if (admins[i] === lower) return true;
-    }
-    return false;
+    const lower = player.toLowerCase();
+    return admins.includes(lower);
 }
 
-pantheon.commands.register("bal", function(sender, args) {
-    var target = args.length > 0 ? args[0] : sender;
-    var bal = pantheon.economy.balance(target);
-    if (target.toLowerCase() === sender.toLowerCase()) {
-        pantheon.chat.party("Your balance: " + bal + " coins");
-    } else {
-        pantheon.chat.party(target + "'s balance: " + bal + " coins");
+command.onCommand({
+    invoker: "economy",
+    description: "Coin economy commands.",
+    callback: (sender, args) => {
+        chat.party("Economy commands: !bal, !pay, !give (admin), !set (admin)");
     }
 });
 
-pantheon.commands.register("pay", function(sender, args) {
-    if (args.length < 2) {
-        pantheon.chat.party("Usage: !pay <player> <amount>");
-        return;
+command.onCommand({
+    invoker: "bal",
+    callback: (sender, args) => {
+        const target = args.length > 0 ? args[0] : sender;
+        const bal = economy.balance(target);
+        if (target.toLowerCase() === sender.toLowerCase()) {
+            chat.party(`Your balance: ${bal} coins`);
+        } else {
+            chat.party(`${target}'s balance: ${bal} coins`);
+        }
     }
-    var target = args[0];
-    var amount = parseInt(args[1]);
-    if (isNaN(amount) || amount <= 0) {
-        pantheon.chat.party("Invalid amount.");
-        return;
-    }
-    if (target.toLowerCase() === sender.toLowerCase()) {
-        pantheon.chat.party("You can't pay yourself.");
-        return;
-    }
-    if (!pantheon.economy.has(sender, amount)) {
-        pantheon.chat.party("You don't have enough coins.");
-        return;
-    }
-    pantheon.economy.take(sender, amount);
-    pantheon.economy.add(target, amount);
-    pantheon.chat.party("Paid " + amount + " coins to " + target + ".");
 });
 
-pantheon.commands.register("give", function(sender, args) {
-    if (!isAdmin(sender)) {
-        pantheon.chat.party("You don't have permission.");
-        return;
+command.onCommand({
+    invoker: "pay",
+    callback: (sender, args) => {
+        if (args.length < 2) {
+            chat.party("Usage: !pay <player> <amount>");
+            return;
+        }
+        const target = args[0];
+        const amount = parseInt(args[1]);
+        if (isNaN(amount) || amount <= 0) {
+            chat.party("Invalid amount.");
+            return;
+        }
+        if (target.toLowerCase() === sender.toLowerCase()) {
+            chat.party("You can't pay yourself.");
+            return;
+        }
+        if (!economy.has(sender, amount)) {
+            chat.party("You don't have enough coins.");
+            return;
+        }
+        economy.take(sender, amount);
+        economy.add(target, amount);
+        chat.party(`Paid ${amount} coins to ${target}.`);
     }
-    if (args.length < 2) {
-        pantheon.chat.party("Usage: !give <player> <amount>");
-        return;
-    }
-    var target = args[0];
-    var amount = parseInt(args[1]);
-    if (isNaN(amount) || amount <= 0) {
-        pantheon.chat.party("Invalid amount.");
-        return;
-    }
-    pantheon.economy.add(target, amount);
-    pantheon.chat.party("Gave " + amount + " coins to " + target + ".");
 });
 
-pantheon.commands.register("set", function(sender, args) {
-    if (!isAdmin(sender)) {
-        pantheon.chat.party("You don't have permission.");
-        return;
+command.onCommand({
+    invoker: "give",
+    callback: (sender, args) => {
+        if (!isAdmin(sender)) {
+            chat.party("You don't have permission.");
+            return;
+        }
+        if (args.length < 2) {
+            chat.party("Usage: !give <player> <amount>");
+            return;
+        }
+        const target = args[0];
+        const amount = parseInt(args[1]);
+        if (isNaN(amount) || amount <= 0) {
+            chat.party("Invalid amount.");
+            return;
+        }
+        economy.add(target, amount);
+        chat.party(`Gave ${amount} coins to ${target}.`);
     }
-    if (args.length < 2) {
-        pantheon.chat.party("Usage: !set <player> <amount>");
-        return;
-    }
-    var target = args[0];
-    var amount = parseInt(args[1]);
-    if (isNaN(amount) || amount < 0) {
-        pantheon.chat.party("Invalid amount.");
-        return;
-    }
-    pantheon.economy.set(target, amount);
-    pantheon.chat.party("Set " + target + "'s balance to " + amount + " coins.");
 });
 
-pantheon.command.onCommand(function(sender, args) {
-    pantheon.chat.party("Economy commands: !bal, !pay, !give (admin), !set (admin)");
+command.onCommand({
+    invoker: "set",
+    callback: (sender, args) => {
+        if (!isAdmin(sender)) {
+            chat.party("You don't have permission.");
+            return;
+        }
+        if (args.length < 2) {
+            chat.party("Usage: !set <player> <amount>");
+            return;
+        }
+        const target = args[0];
+        const amount = parseInt(args[1]);
+        if (isNaN(amount) || amount < 0) {
+            chat.party("Invalid amount.");
+            return;
+        }
+        economy.set(target, amount);
+        chat.party(`Set ${target}'s balance to ${amount} coins.`);
+    }
 });
 
 loadAdmins();

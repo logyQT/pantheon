@@ -1,6 +1,5 @@
 package com.logy.pantheon.features.commands.main;
 
-
 import com.logy.pantheon.config.ModuleRegistry;
 import com.logy.pantheon.utils.ChatUtils;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -8,15 +7,13 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import com.logy.pantheon.features.commands.CommandPantheon;
 import com.logy.pantheon.features.commands.scripting.ModuleInstance;
 
-
 import java.util.*;
 import java.util.function.Consumer;
 
 import static com.logy.pantheon.PantheonMod.LOGGER;
 
 public class CommandManager {
-    private static final Map<String, ICommand> commands = new HashMap<>();
-    private static final Map<String, String> commandSources = new HashMap<>();
+    private static final Map<String, Map<String, ICommand>> commands = new HashMap<>();
     private static final List<GameInstance> REGISTERED_GAMES = new ArrayList<>();
     public static final String TOKEN = "!";
 
@@ -35,9 +32,10 @@ public class CommandManager {
     }
 
     public static List<String> getEnabledCommands() {
-        return commands.keySet().stream()
-                .filter(key -> ModuleRegistry.isEnabled(
-                    commandSources.getOrDefault(key, "unknown")))
+        return commands.entrySet().stream()
+                .filter(entry -> entry.getValue().keySet().stream()
+                    .anyMatch(source -> "built-in".equals(source) || ModuleRegistry.isEnabled(source)))
+                .map(Map.Entry::getKey)
                 .sorted()
                 .collect(java.util.stream.Collectors.toList());
     }
@@ -107,33 +105,36 @@ public class CommandManager {
 
     public static void register(ICommand cmd, String source) {
         String key = TOKEN + cmd.getName().toLowerCase();
-        if (commands.containsKey(key)) {
-            String existingSource = commandSources.getOrDefault(key, "unknown");
-            if (!existingSource.equals(source)) {
-                throw new RuntimeException(
-                    "[Pantheon] FATAL: Command '" + key + "' already registered by '" + existingSource + "'. "
-                    + "Cannot also register from '" + source + "'. "
-                    + "Rename your command or folder to resolve this collision."
-                );
-            }
-        }
-        commands.put(key, cmd);
-        commandSources.put(key, source);
+        commands.computeIfAbsent(key, k -> new HashMap<>()).put(source, cmd);
     }
 
     public static void unregister(String name) {
         String key = TOKEN + name.toLowerCase();
         commands.remove(key);
-        commandSources.remove(key);
+    }
+
+    public static void unregister(String name, String source) {
+        String key = TOKEN + name.toLowerCase();
+        Map<String, ICommand> handlers = commands.get(key);
+        if (handlers != null) {
+            handlers.remove(source);
+            if (handlers.isEmpty()) commands.remove(key);
+        }
     }
 
     public static void handle(String sender, String content) {
         String[] args = content.split(" ");
-        ICommand cmd = commands.get(args[0].toLowerCase());
+        Map<String, ICommand> handlers = commands.get(args[0].toLowerCase());
 
-        if (cmd != null) {
+        if (handlers != null) {
             String[] cmdArgs = Arrays.copyOfRange(args, 1, args.length);
-            cmd.execute(sender, cmdArgs);
+            for (var entry : handlers.entrySet()) {
+                String source = entry.getKey();
+                ICommand cmd = entry.getValue();
+                if ("built-in".equals(source) || ModuleRegistry.isEnabled(source)) {
+                    cmd.execute(sender, cmdArgs);
+                }
+            }
         }
     }
 }

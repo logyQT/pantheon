@@ -5,6 +5,8 @@ import com.logy.pantheon.config.gui.SettingDefinition;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.logy.pantheon.PantheonMod.LOGGER;
+
 public class ModuleRegistry {
 
     private static List<ModuleSchema> modules = new ArrayList<>();
@@ -54,6 +56,18 @@ public class ModuleRegistry {
         if (def.defaultValue != null) {
             ModuleConfig.get(moduleId).setDefaults(Map.of(def.id, def.defaultValue));
         }
+    }
+
+    public static void setWidgetDisplay(String moduleId, String settingId, String display) {
+        getModule(moduleId).ifPresentOrElse(m -> {
+            for (SettingDefinition def : m.settings) {
+                if (def.id.equals(settingId)) {
+                    def.name = display;
+                    return;
+                }
+            }
+            LOGGER.warn("[ModuleRegistry] gui widget '{}' has no matching setting in module '{}'", settingId, moduleId);
+        }, () -> LOGGER.warn("[ModuleRegistry] Module '{}' not found for gui widget '{}'", moduleId, settingId));
     }
 
     public static void registerButton(String moduleId, String buttonId, String buttonName, Runnable callback) {

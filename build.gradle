@@ -25,6 +25,13 @@ if (envFile.exists()) {
 
 repositories {
 	mavenCentral()
+	maven {
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
+		content {
+			includeGroup "maven.modrinth"
+		}
+	}
 }
 
 loom {
@@ -53,11 +60,9 @@ dependencies {
 	include "org.lwjgl:lwjgl-nanovg:3.4.1:natives-windows"
 
 	implementation "org.xerial:sqlite-jdbc:3.45.2.0"
-	include "org.xerial:sqlite-jdbc:3.45.2.0"
 
 
-	implementation "org.mozilla:rhino:1.9.1"
-	include "org.mozilla:rhino:1.9.1"
+	implementation "maven.modrinth:graal:25.0.2.3"
 }
 
 processResources {

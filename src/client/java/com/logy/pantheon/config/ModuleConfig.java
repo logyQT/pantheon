@@ -10,8 +10,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ModuleConfig {
@@ -24,9 +23,40 @@ public class ModuleConfig {
     private static final Map<String, ModuleConfig> INSTANCES = new ConcurrentHashMap<>();
 
     private final String moduleId;
+    private final Map<String, Map<Integer, ChangeListener>> changeListeners = new HashMap<>();
+    private int nextListenerId = 0;
+    private final Set<String> firingKeys = new HashSet<>();
+
+    @FunctionalInterface
+    public interface ChangeListener {
+        void onChange(Object newValue, Object oldValue);
+    }
 
     private ModuleConfig(String moduleId) {
         this.moduleId = moduleId;
+    }
+
+    public int addChangeListener(String key, ChangeListener listener) {
+        int id = nextListenerId++;
+        changeListeners.computeIfAbsent(key, k -> new HashMap<>()).put(id, listener);
+        return id;
+    }
+
+    public void removeChangeListener(String key, int id) {
+        Map<Integer, ChangeListener> listeners = changeListeners.get(key);
+        if (listeners != null) {
+            listeners.remove(id);
+            if (listeners.isEmpty()) changeListeners.remove(key);
+        }
+    }
+
+    public void clearChangeListeners() {
+        changeListeners.clear();
+        firingKeys.clear();
+    }
+
+    public Object getRaw(String key) {
+        return data().get(key);
     }
 
     @SuppressWarnings("unchecked")
@@ -89,8 +119,25 @@ public class ModuleConfig {
     }
 
     public void set(String key, Object value) {
+        if (firingKeys.contains(key)) {
+            System.err.println("[ModuleConfig] Recursive set() for '" + key + "', ignored");
+            return;
+        }
+        Object oldValue = data().get(key);
         data().put(key, value);
         save();
+
+        firingKeys.add(key);
+        try {
+            Map<Integer, ChangeListener> listeners = changeListeners.get(key);
+            if (listeners != null) {
+                for (ChangeListener listener : new HashMap<>(listeners).values()) {
+                    try { listener.onChange(value, oldValue); } catch (Exception e) { e.printStackTrace(); }
+                }
+            }
+        } finally {
+            firingKeys.remove(key);
+        }
     }
 
     public boolean has(String key) {

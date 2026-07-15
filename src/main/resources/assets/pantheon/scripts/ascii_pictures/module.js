@@ -1,59 +1,57 @@
-pantheon.settings.setCategory("ASCII Pics");
-pantheon.settings.setDisplayName("ASCII Pictures");
+settings.category("ASCII Pics");
+settings.displayName("ASCII Pictures");
 
-pantheon.settings.addToggle({ id: "enabled", display: "Enabled", default: true });
+settings.toggle({ id: "enabled", default: true });
 
-pantheon.command.name("pictures");
-pantheon.command.description("ASCII picture commands. Loads from picture-commands.json. Use !pictures refresh to reload.");
-
-pantheon.gui.register("open_folder", "Open Folder", function() {
-    pantheon.gui.openFolder();
-});
-
-pantheon.gui.register("refresh", "Refresh", function() {
+gui.toggle({ id: "enabled", display: "Enabled" });
+gui.button({ id: "open_folder", display: "Open Folder", callback: () => {
+    gui.openFolder();
+} });
+gui.button({ id: "refresh", display: "Refresh", callback: () => {
     refreshPictures();
-});
+} });
 
-var pictures = {};
+const pictures = {};
 
 function loadPictures() {
-    pictures = {};
-    var content = pantheon.readFile("picture-commands.json");
+    for (const key of Object.keys(pictures)) {
+        delete pictures[key];
+    }
+    const content = core.readFile("picture-commands.json");
     if (!content) return;
     try {
-        var data = JSON.parse(content);
+        const data = JSON.parse(content);
         if (data && data.pictures) {
-            for (var i = 0; i < data.pictures.length; i++) {
-                var p = data.pictures[i];
+            for (const p of data.pictures) {
                 if (p.name && p.picture) {
                     pictures[p.name] = p.picture;
                 }
             }
         }
     } catch (e) {
-        pantheon.log("Failed to parse picture-commands.json: " + e);
+        console.log("Failed to parse picture-commands.json:", e);
     }
 }
 
 function registerPictureCommands() {
-    var names = Object.keys(pictures);
-    for (var i = 0; i < names.length; i++) {
-        var name = names[i];
-        var picLines = pictures[name].split("\n");
-        (function(lines) {
-            pantheon.commands.register(name, function(sender, args) {
-                for (var j = 0; j < lines.length; j++) {
-                    pantheon.chat.party(lines[j]);
+    const names = Object.keys(pictures);
+    for (const name of names) {
+        const lines = pictures[name].split("\n");
+        command.onCommand({
+            invoker: name,
+            callback: (sender, args) => {
+                for (const line of lines) {
+                    chat.party(line);
                 }
-            });
-        })(picLines);
+            }
+        });
     }
 }
 
 function unregisterPictureCommands() {
-    var names = Object.keys(pictures);
-    for (var i = 0; i < names.length; i++) {
-        pantheon.commands.unregister(names[i]);
+    const names = Object.keys(pictures);
+    for (const name of names) {
+        command.off(name);
     }
 }
 
@@ -61,22 +59,21 @@ function refreshPictures() {
     unregisterPictureCommands();
     loadPictures();
     registerPictureCommands();
-    pantheon.chat.party("Pictures reloaded (" + Object.keys(pictures).length + " commands).");
+    chat.client(`Pictures reloaded (${Object.keys(pictures).length} commands).`);
 }
 
-// Initial load
 loadPictures();
 registerPictureCommands();
 
-pantheon.command.onCommand(function(sender, args) {
-    if (args.length > 0 && args[0] === "refresh") {
-        refreshPictures();
-    } else {
-        var names = Object.keys(pictures);
+command.onCommand({
+    invoker: "pictures",
+    description: "ASCII picture commands. Loads from picture-commands.json. Use !pictures refresh to reload.",
+    callback: (sender, args) => {
+        const names = Object.keys(pictures);
         if (names.length === 0) {
-            pantheon.chat.party("No pictures loaded. Add them to picture-commands.json and use !pictures refresh.");
+            chat.party("No pictures loaded. Add them to picture-commands.json and use the GUI to refresh.");
         } else {
-            pantheon.chat.party("Available: " + names.join(", "));
+            chat.party(`Available: ${names.join(", ")}`);
         }
     }
 });

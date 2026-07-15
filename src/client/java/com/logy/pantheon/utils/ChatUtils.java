@@ -148,6 +148,12 @@ public class ChatUtils {
 
     public static void sendCommand(String cmd) {queCommand(cmd);}
 
+    public static void sendRawMessage(String message) {
+        if (client.player != null) {
+            client.player.connection.sendChat(message);
+        }
+    }
+
     public static void sendFeedback(String message) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {

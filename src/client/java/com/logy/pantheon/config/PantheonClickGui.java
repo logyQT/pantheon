@@ -47,6 +47,7 @@ public class PantheonClickGui extends Screen {
                 if (schema.settings != null) {
                     for (SettingDefinition def : schema.settings) {
                         if ("enabled".equals(def.id) && def.type == SettingDefinition.SettingType.BOOLEAN) continue;
+                        if (def.name == null || def.name.isEmpty()) continue;
                         switch (def.type) {
                             case BOOLEAN -> {
                                 module.add(new BooleanWidget(def.name,

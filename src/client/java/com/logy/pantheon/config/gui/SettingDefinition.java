@@ -6,7 +6,7 @@ public class SettingDefinition {
     }
 
     public final String id;
-    public final String name;
+    public String name;
     public final SettingType type;
     public final Object defaultValue;
     public final int min;

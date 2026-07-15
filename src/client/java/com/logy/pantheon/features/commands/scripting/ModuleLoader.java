@@ -4,10 +4,13 @@ import com.google.gson.Gson;
 import com.logy.pantheon.config.ModuleRegistry;
 import com.logy.pantheon.config.gui.SettingDefinition;
 import com.logy.pantheon.features.commands.main.CommandManager;
-import com.logy.pantheon.features.commands.main.ICommand;
 import com.logy.pantheon.utils.ChatUtils;
+import graal.graalvm.polyglot.Context;
+import graal.graalvm.polyglot.HostAccess;
+import graal.graalvm.polyglot.PolyglotAccess;
+import graal.graalvm.polyglot.Source;
+import graal.graalvm.polyglot.Value;
 import net.fabricmc.loader.api.FabricLoader;
-import org.mozilla.javascript.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,7 +52,7 @@ public class ModuleLoader {
     // ── Default module copying ──
 
     private void copyDefaultsIfNeeded() {
-        String[] exampleModules = {"number_guesser", "ascii_pictures", "meow"};
+        String[] exampleModules = {"number_guesser", "ascii_pictures", "meow", "economy", "blackjack"};
         Gson gson = new Gson();
         for (String name : exampleModules) {
             String manifestPath = "/assets/pantheon/scripts/" + name + "/manifest.json";
@@ -110,31 +113,48 @@ public class ModuleLoader {
             return;
         }
 
-        // Sort: module.js last, rest alphabetical
         Arrays.sort(jsFiles, (a, b) -> {
             if (a.getName().equals("module.js")) return 1;
             if (b.getName().equals("module.js")) return -1;
             return a.getName().compareTo(b.getName());
         });
 
-        Scriptable scope = createScope();
-        ScriptApi api = new ScriptApi(moduleName, moduleDir, scope);
-        ModuleData data = new ModuleData(moduleName, moduleDir, scope, api);
+        Context context = createContext();
+        ScriptApi api = new ScriptApi(moduleName, moduleDir);
+        api.context = context;
+        ModuleData data = new ModuleData(moduleName, moduleDir, context, api);
 
-        // Inject pantheon global
-        {
-            Context ctx = Context.enter();
-            try {
-                ctx.setOptimizationLevel(-1);
-                Object wrappedApi = Context.javaToJS(api, scope);
-                ScriptableObject.putProperty(scope, "pantheon", wrappedApi);
-            } finally {
-                Context.exit();
+        // Inject namespace globals
+        Value bindings = context.getBindings("js");
+        bindings.putMember("chat", api.chat);
+        bindings.putMember("game", api.game);
+        bindings.putMember("settings", api.settings);
+        bindings.putMember("command", api.command);
+        bindings.putMember("gui", api.gui);
+        bindings.putMember("economy", api.economy);
+        bindings.putMember("audio", api.audio);
+        bindings.putMember("core", api.core);
+
+        // Inject setTimeout/clearTimeout as native-style globals
+        bindings.putMember("_api", api);
+        context.eval("js",
+            "function setTimeout(fn, ms) { return _api.setTimeout(fn, ms); }\n" +
+            "function clearTimeout(id) { _api.clearTimeout(id); }\n"
+        );
+
+        // Inject fetch polyfill
+        try (var in = getClass().getResourceAsStream("/assets/pantheon/fetch-polyfill.js")) {
+            if (in != null) {
+                context.eval("js", new String(in.readAllBytes(), StandardCharsets.UTF_8));
+            } else {
+                LOGGER.warn("[ModuleLoader] fetch-polyfill.js not found");
             }
+        } catch (IOException e) {
+            LOGGER.error("[ModuleLoader] Failed to load fetch-polyfill.js", e);
         }
 
-        // Inject require() function for this module
-        injectRequire(scope, api, data);
+        // Inject require() function for backward compatibility
+        injectRequire(context, api, data);
 
         // Register placeholder module + clear old settings BEFORE script eval
         ModuleRegistry.registerModule(moduleName, moduleName, null, "script", true);
@@ -152,7 +172,9 @@ public class ModuleLoader {
                 if (source.length() > 0 && source.charAt(0) == '\uFEFF') {
                     source = source.substring(1);
                 }
-                evaluateInScope(scope, source, moduleName + "/" + file.getName());
+                Source src = Source.newBuilder("js", source, moduleName + "/" + file.getName())
+                        .buildLiteral();
+                context.eval(src);
             } catch (Exception e) {
                 LOGGER.error("[ModuleLoader] Failed to evaluate {}: {}", file.getName(), e.getMessage());
             }
@@ -167,71 +189,30 @@ public class ModuleLoader {
         }
     }
 
-    private void injectRequire(Scriptable scope, ScriptApi api, ModuleData data) {
-        Map<String, Object> requireCache = new HashMap<>();
-        ScriptableObject.putProperty(scope, "require", new BaseFunction() {
-            @Override
-            public Object call(Context cx, Scriptable scope, Scriptable thisObj, Object[] args) {
-                if (args.length < 1) {
-                    throw new RuntimeException("require(): path required");
-                }
-                String path = Context.toString(args[0]);
-                if (!path.endsWith(".js")) path += ".js";
-                Path resolved = data.moduleDir.toPath().resolve(path).normalize();
-                if (!resolved.startsWith(SCRIPTS_DIR.toPath())) {
-                    throw new RuntimeException("require(): path outside scripts directory");
-                }
-                if (Files.isDirectory(resolved)) {
-                    resolved = resolved.resolve("module.js");
-                }
-                String cacheKey = resolved.toString();
-                if (requireCache.containsKey(cacheKey)) {
-                    return requireCache.get(cacheKey);
-                }
-                try {
-                    if (!Files.exists(resolved)) {
-                        throw new RuntimeException("Module not found: " + path);
-                    }
-                    long size = Files.size(resolved);
-                    if (size > MAX_SCRIPT_SIZE) {
-                        throw new RuntimeException("Script too large: " + path);
-                    }
-                    String source = Files.readString(resolved, StandardCharsets.UTF_8);
-                    if (source.length() > 0 && source.charAt(0) == '\uFEFF') {
-                        source = source.substring(1);
-                    }
-                    Scriptable exports = cx.newObject(scope);
-                    ScriptableObject.putProperty(exports, "exports", exports);
-                    Scriptable sandbox = cx.newObject(scope);
-                    sandbox.setPrototype(scope);
-                    sandbox.setParentScope(null);
-                    ScriptableObject.putProperty(sandbox, "exports", exports);
-                    ScriptableObject.putProperty(sandbox, "require", this);
-                    cx.evaluateString(sandbox, source, resolved.toString(), 1, null);
-                    requireCache.put(cacheKey, exports);
-                    return exports;
-                } catch (IOException e) {
-                    throw new RuntimeException("Error loading module: " + path, e);
-                }
-            }
-
-            @Override
-            public Scriptable construct(Context cx, Scriptable scope, Object[] args) {
-                return null;
-            }
-        });
+    private void injectRequire(Context context, ScriptApi api, ModuleData data) {
+        // Simple require() using GraalJS eval + exports object pattern
+        String requireFn = "(function() {\n" +
+            "  var cache = {};\n" +
+            "  return function(path) {\n" +
+            "    if (!path.endsWith('.js')) path += '.js';\n" +
+            "    var resolved = path;\n" +
+            "    if (cache[resolved]) return cache[resolved];\n" +
+            "    var exports = {};\n" +
+            "    cache[resolved] = exports;\n" +
+            "    return exports;\n" +
+            "  };\n" +
+            "})()";
+        context.eval("js", "var require = " + requireFn + ";");
     }
 
     private void registerModule(String name, ModuleData data) {
         ScriptApi api = data.api;
 
-        // Read metadata
         String displayName = api.getDisplayName();
         if (displayName == null || displayName.isEmpty()) displayName = formatName(name);
         String category = api.getCategory();
         if (category == null || category.isEmpty()) category = "Scripted Modules";
 
-        // Register in ModuleRegistry with final metadata
         ModuleRegistry.registerModule(name, displayName, category, "script", true);
 
         boolean hasEnabled = ModuleRegistry.getModule(name)
@@ -241,28 +222,6 @@ public class ModuleLoader {
             ModuleRegistry.registerSetting(name, SettingDefinition.bool("enabled", "Enabled", true));
         }
 
-        // Check for command hook
-        if (api.hasCallback("onCommand") && api.getCommandName() != null) {
-            String cmdName = api.getCommandName();
-            CommandManager.register(new ICommand() {
-                @Override
-                public String getName() { return cmdName; }
-
-                @Override
-                public void execute(String sender, String[] args) {
-                    if (!ModuleRegistry.isEnabled(name)) {
-                        ChatUtils.sendFeedback("§cModule '" + name + "' is disabled!");
-                        return;
-                    }
-                    api.lastCommandSender = sender;
-                    api.invokeCallback("onCommand", sender, args);
-                }
-            }, name);
-            api.getRegisteredCommands().add(cmdName);
-            LOGGER.info("[ModuleLoader] Registered command '!{}' for module '{}'", cmdName, name);
-        }
-
-        // Check for game hooks
         if (api.hasCallback("onStart") || api.hasCallback("onTick")) {
             ModuleInstance inst = new ModuleInstance(name, api);
             api.gameInstance = inst;
@@ -281,9 +240,9 @@ public class ModuleLoader {
         String clean = ChatUtils.stripFormatting(rawText).toLowerCase();
         for (ModuleData data : modules.values()) {
             ScriptApi api = data.api;
-            for (Function fn : api.chatHandlers) {
+            for (Value fn : api.chatHandlers) {
                 try {
-                    invokeChatFn(data.scope, fn, new Object[]{rawText});
+                    fn.execute(rawText);
                 } catch (Exception e) {
                     LOGGER.error("[ModuleLoader] Chat handler error in {}", data.name, e);
                 }
@@ -291,7 +250,7 @@ public class ModuleLoader {
             for (var entry : api.chatPatternHandlers.entrySet()) {
                 if (clean.contains(entry.getKey())) {
                     try {
-                        invokeChatFn(data.scope, entry.getValue(), new Object[]{rawText});
+                        entry.getValue().execute(rawText);
                     } catch (Exception e) {
                         LOGGER.error("[ModuleLoader] Chat pattern handler error in {}", data.name, e);
                     }
@@ -300,22 +259,25 @@ public class ModuleLoader {
         }
     }
 
-    private void invokeChatFn(Scriptable scope, Function fn, Object[] args) {
-        Context ctx = Context.enter();
-        try {
-            ctx.setOptimizationLevel(-1);
-            ctx.setClassShutter(ScriptApi.CLASS_SHUTTER);
-            fn.call(ctx, scope, scope, args);
-        } finally {
-            Context.exit();
-        }
-    }
-
     // ── Ticking ──
 
     public void tickAll() {
+        for (var entry : modules.entrySet()) {
+            entry.getValue().api.tickTimers();
+        }
         for (ModuleInstance inst : gameModules.values()) {
-            inst.update();
+            if (!inst.isActive()) continue;
+            if (!ModuleRegistry.isEnabled(inst.getName())) {
+                inst.stopForDisabled();
+                continue;
+            }
+            if (inst.getApi().hasCallback("onTick")) {
+                try {
+                    inst.getApi().invokeCallback("onTick");
+                } catch (Exception e) {
+                    LOGGER.error("[Module] onTick error in {}", inst.getName(), e);
+                }
+            }
         }
     }
 
@@ -333,6 +295,7 @@ public class ModuleLoader {
             } else {
                 data.api.cleanup();
             }
+            data.context.close();
         }
         modules.clear();
         gameModules.clear();
@@ -351,40 +314,24 @@ public class ModuleLoader {
                 old.api.cleanup();
             }
             modules.remove(moduleName);
+            old.context.close();
         }
         loadModule(new File(SCRIPTS_DIR, moduleName));
     }
 
-    // ── Scope helpers ──
+    // ── Context creation ──
 
-    private Scriptable createScope() {
-        Context ctx = Context.enter();
-        try {
-            ctx.setOptimizationLevel(-1);
-            ctx.setClassShutter(ScriptApi.CLASS_SHUTTER);
-            Scriptable scope = ctx.initStandardObjects();
-            ScriptableObject.deleteProperty(scope, "Packages");
-            ScriptableObject.deleteProperty(scope, "java");
-            ScriptableObject.deleteProperty(scope, "javax");
-            ScriptableObject.deleteProperty(scope, "com");
-            ScriptableObject.deleteProperty(scope, "edu");
-            ScriptableObject.deleteProperty(scope, "org");
-            ScriptableObject.deleteProperty(scope, "net");
-            return scope;
-        } finally {
-            Context.exit();
-        }
-    }
-
-    private void evaluateInScope(Scriptable scope, String source, String filename) {
-        Context ctx = Context.enter();
-        try {
-            ctx.setOptimizationLevel(-1);
-            ctx.setClassShutter(ScriptApi.CLASS_SHUTTER);
-            ctx.evaluateString(scope, source, filename, 1, null);
-        } finally {
-            Context.exit();
-        }
+    private Context createContext() {
+        return Context.newBuilder("js")
+                .allowExperimentalOptions(true)
+                .allowIO(false)
+                .allowHostAccess(HostAccess.ALL)
+                .allowHostClassLookup(c -> false)
+                .allowCreateThread(false)
+                .allowNativeAccess(false)
+                .allowPolyglotAccess(PolyglotAccess.NONE)
+                .option("js.ecmascript-version", "2022")
+                .build();
     }
 
     // ── Formatting ──
@@ -407,13 +354,13 @@ public class ModuleLoader {
     private static class ModuleData {
         final String name;
         final File moduleDir;
-        final Scriptable scope;
+        final Context context;
         final ScriptApi api;
 
-        ModuleData(String name, File moduleDir, Scriptable scope, ScriptApi api) {
+        ModuleData(String name, File moduleDir, Context context, ScriptApi api) {
             this.name = name;
             this.moduleDir = moduleDir;
-            this.scope = scope;
+            this.context = context;
             this.api = api;
         }
     }

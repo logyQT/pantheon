@@ -1,8 +1,10 @@
-pantheon.settings.setCategory("Chat Hooks");
-pantheon.settings.setDisplayName("Meow Sound");
+settings.category("Chat Hooks");
+settings.displayName("Meow Sound");
 
-pantheon.settings.addToggle({ id: "enabled", display: "Enabled", default: true });
+settings.toggle({ id: "enabled", default: true });
 
-pantheon.chat.onMessage("meow", function(rawText) {
-    pantheon.audio.playSound({ sound: "minecraft:entity.cat.ambient" });
+gui.toggle({ id: "enabled", display: "Enabled" });
+
+chat.onMessage("meow", (rawText) => {
+    audio.playSound({ sound: "minecraft:entity.cat.ambient" });
 });
